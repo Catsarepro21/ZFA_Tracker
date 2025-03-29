@@ -36,9 +36,12 @@ export async function syncToGoogleSheets(
     const existingSheets = spreadsheet.data.sheets?.map(sheet => sheet.properties?.title) || [];
 
     // First, update the volunteers sheet
+    // Sort volunteers alphabetically by name
+    const sortedVolunteers = [...volunteers].sort((a, b) => a.name.localeCompare(b.name));
+    
     const volunteersData = [
       ['Volunteer ID', 'Name', 'Total Events', 'Total Hours'],
-      ...await Promise.all(volunteers.map(async volunteer => {
+      ...await Promise.all(sortedVolunteers.map(async volunteer => {
         const volunteerEvents = events.filter(e => e.volunteerId === volunteer.id);
         
         // Calculate total hours

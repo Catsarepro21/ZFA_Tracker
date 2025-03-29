@@ -11,7 +11,7 @@ import { useVolunteers } from "@/hooks/useVolunteers";
 import { useEvents } from "@/hooks/useEvents";
 import { useAdmin } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
-import { Menu, User, PlusCircle, Settings } from "lucide-react";
+import { Menu, User, PlusCircle, Settings, LogOut } from "lucide-react";
 import { Volunteer, Event } from "@shared/schema";
 import { calculateTotalHours } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -29,7 +29,7 @@ export default function Home() {
   const [eventToDelete, setEventToDelete] = useState<number | null>(null);
 
   const isMobile = useIsMobile();
-  const { isAdmin, verifyAdmin } = useAdmin();
+  const { isAdmin, verifyAdmin, logout } = useAdmin();
   const { volunteers, isLoading: volunteersLoading, refetch: refetchVolunteers } = useVolunteers();
   const { 
     events, 
@@ -108,20 +108,33 @@ export default function Home() {
           </Button>
           <h1 className="text-xl font-medium">Volunteer Tracker</h1>
         </div>
-        <Button 
-          variant="secondary" 
-          className="bg-secondary hover:bg-secondary/90 text-white"
-          onClick={() => isAdmin ? setIsAdminPanelOpen(true) : setIsAdminModalOpen(true)}
-        >
-          <Settings className="mr-2 h-4 w-4" />
-          Admin
-        </Button>
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button 
+              variant="destructive" 
+              size="sm"
+              className="text-white"
+              onClick={() => logout()}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </Button>
+          )}
+          <Button 
+            variant="secondary" 
+            className="bg-secondary hover:bg-secondary/90 text-white"
+            onClick={() => isAdmin ? setIsAdminPanelOpen(true) : setIsAdminModalOpen(true)}
+          >
+            <Settings className="mr-2 h-4 w-4" />
+            Admin
+          </Button>
+        </div>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <VolunteerSidebar
-          volunteers={volunteers || []}
+          volunteers={(volunteers || []).sort((a, b) => a.name.localeCompare(b.name))}
           selectedVolunteer={selectedVolunteer}
           onSelectVolunteer={setSelectedVolunteer}
           onAddVolunteer={() => setIsAddVolunteerModalOpen(true)}
