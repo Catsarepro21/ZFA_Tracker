@@ -49,7 +49,7 @@ export default function GoogleSyncModal({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Admin-Password': password
+          'X-ADMIN-PASSWORD': password
         }
       });
       

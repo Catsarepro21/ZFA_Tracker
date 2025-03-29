@@ -19,7 +19,7 @@ export async function apiRequest(
   
   // If there's a password field in the data, add it as a header
   if (data && typeof data === 'object' && 'password' in data) {
-    headers['X-Admin-Password'] = (data as any).password;
+    headers['X-ADMIN-PASSWORD'] = (data as any).password;
     
     // For GET requests, add password as a query parameter
     if (method === 'GET' && !url.includes('?')) {
@@ -60,7 +60,7 @@ export const getQueryFn: <T>(options: {
     
     const headers: Record<string, string> = {};
     if (adminPassword) {
-      headers['X-Admin-Password'] = adminPassword;
+      headers['X-ADMIN-PASSWORD'] = adminPassword;
     }
     
     const res = await fetch(url, {

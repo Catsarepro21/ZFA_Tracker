@@ -48,7 +48,7 @@ export default function AdminPanel({
     queryFn: async () => {
       const response = await fetch(`/api/admin/sheets-config?password=${encodeURIComponent(password)}`, {
         headers: {
-          'X-Admin-Password': password
+          'X-ADMIN-PASSWORD': password
         }
       });
       
@@ -90,7 +90,7 @@ export default function AdminPanel({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'X-Admin-Password': password
+          'X-ADMIN-PASSWORD': password
         },
         body: JSON.stringify(passwordData)
       });
@@ -136,7 +136,7 @@ export default function AdminPanel({
       
       const headers = {
         'Content-Type': 'application/json',
-        'X-Admin-Password': password
+        'X-ADMIN-PASSWORD': password
       };
       
       const response = await fetch('/api/admin/sheets-config', {
@@ -162,12 +162,33 @@ export default function AdminPanel({
   };
   
   const handleExportCsv = () => {
-    const a = document.createElement('a');
-    a.href = `/api/admin/export-csv?password=${encodeURIComponent(password)}`;
-    a.download = 'volunteer_events.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    // Create a new XMLHttpRequest instead of using anchor link
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/api/admin/export-csv', true);
+    xhr.setRequestHeader('X-ADMIN-PASSWORD', password);
+    xhr.responseType = 'blob';
+    
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        // Create a download link
+        const url = window.URL.createObjectURL(new Blob([xhr.response]));
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'volunteer_events.csv';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to download CSV file",
+          variant: "destructive"
+        });
+      }
+    };
+    
+    xhr.send();
   };
   
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

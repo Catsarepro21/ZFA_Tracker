@@ -22,14 +22,23 @@ function handleValidationError(err: unknown, res: Response) {
 
 // Authentication middleware
 function checkAdminPassword(req: Request, res: Response, next: Function) {
-  // Check for password in request body, query parameters, or headers
-  const password = req.body.password || req.query.password || req.headers['x-admin-password'];
+  // Check for password in request body, query parameters, or headers (case insensitive)
+  const password = req.body.password || 
+                  req.query.password || 
+                  req.headers['x-admin-password'] || 
+                  req.headers['x-ADMIN-PASSWORD'] || 
+                  req.headers['X-ADMIN-PASSWORD'] ||
+                  req.headers['X-Admin-Password'];
   
   console.log('Auth check - Method:', req.method);
   console.log('Auth check - URL:', req.url);
   console.log('Auth check - Body:', JSON.stringify(req.body));
   console.log('Auth check - Query:', JSON.stringify(req.query));
-  console.log('Auth check - Headers:', JSON.stringify(req.headers));
+  
+  // Log headers with all possible case variations
+  console.log('Auth check - Header x-admin-password:', req.headers['x-admin-password']);
+  console.log('Auth check - Header X-ADMIN-PASSWORD:', req.headers['X-ADMIN-PASSWORD']);
+  console.log('Auth check - Header X-Admin-Password:', req.headers['X-Admin-Password']);
   console.log('Auth check - Password received:', password);
   
   if (!password) {
