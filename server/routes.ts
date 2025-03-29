@@ -1,0 +1,293 @@
+import type { Express, Request, Response } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { ZodError } from "zod";
+import { fromZodError } from "zod-validation-error";
+import { 
+  insertVolunteerSchema, 
+  insertEventSchema, 
+  googleSheetsConfigSchema,
+  passwordChangeSchema
+} from "@shared/schema";
+import { syncToGoogleSheets } from "./sheets";
+
+// Utility function to handle validation errors
+function handleValidationError(err: unknown, res: Response) {
+  if (err instanceof ZodError) {
+    const validationError = fromZodError(err);
+    return res.status(400).json({ message: validationError.message });
+  }
+  return res.status(500).json({ message: 'Internal server error' });
+}
+
+// Authentication middleware
+function checkAdminPassword(req: Request, res: Response, next: Function) {
+  const { password } = req.body;
+  
+  if (!password) {
+    return res.status(401).json({ message: 'Password is required' });
+  }
+  
+  storage.getSetting('adminPassword').then(storedPassword => {
+    if (password === storedPassword) {
+      next();
+    } else {
+      res.status(401).json({ message: 'Invalid password' });
+    }
+  }).catch(err => {
+    console.error('Error checking password:', err);
+    res.status(500).json({ message: 'Internal server error' });
+  });
+}
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // API Routes
+  
+  // Volunteers
+  app.get('/api/volunteers', async (req, res) => {
+    try {
+      const volunteers = await storage.getVolunteers();
+      
+      // For each volunteer, get the event count
+      const volunteersWithCount = await Promise.all(
+        volunteers.map(async (volunteer) => {
+          const events = await storage.getEventsByVolunteerId(volunteer.id);
+          return {
+            ...volunteer,
+            eventCount: events.length
+          };
+        })
+      );
+      
+      res.json(volunteersWithCount);
+    } catch (err) {
+      console.error('Error getting volunteers:', err);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  app.post('/api/volunteers', async (req, res) => {
+    try {
+      const volunteerData = insertVolunteerSchema.parse(req.body);
+      const volunteer = await storage.createVolunteer(volunteerData);
+      res.status(201).json(volunteer);
+    } catch (err) {
+      handleValidationError(err, res);
+    }
+  });
+  
+  app.get('/api/volunteers/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid volunteer ID' });
+      }
+      
+      const volunteer = await storage.getVolunteer(id);
+      if (!volunteer) {
+        return res.status(404).json({ message: 'Volunteer not found' });
+      }
+      
+      const events = await storage.getEventsByVolunteerId(id);
+      
+      // Calculate total hours
+      let totalHours = 0;
+      let totalMinutes = 0;
+      
+      events.forEach(event => {
+        const [hours, minutes] = event.hours.split(':').map(Number);
+        totalHours += hours;
+        totalMinutes += minutes;
+      });
+      
+      // Convert excess minutes to hours
+      totalHours += Math.floor(totalMinutes / 60);
+      totalMinutes = totalMinutes % 60;
+      
+      const formattedTotalHours = `${totalHours}:${totalMinutes.toString().padStart(2, '0')}`;
+      
+      res.json({
+        volunteer,
+        events,
+        stats: {
+          totalEvents: events.length,
+          totalHours: formattedTotalHours
+        }
+      });
+    } catch (err) {
+      console.error('Error getting volunteer:', err);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // Events
+  app.post('/api/events', async (req, res) => {
+    try {
+      const eventData = insertEventSchema.parse(req.body);
+      const event = await storage.createEvent(eventData);
+      res.status(201).json(event);
+    } catch (err) {
+      handleValidationError(err, res);
+    }
+  });
+  
+  app.put('/api/events/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid event ID' });
+      }
+      
+      // Only validate the fields that are provided
+      const eventUpdate = req.body;
+      const event = await storage.updateEvent(id, eventUpdate);
+      
+      if (!event) {
+        return res.status(404).json({ message: 'Event not found' });
+      }
+      
+      res.json(event);
+    } catch (err) {
+      handleValidationError(err, res);
+    }
+  });
+  
+  app.delete('/api/events/:id', checkAdminPassword, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid event ID' });
+      }
+      
+      const success = await storage.deleteEvent(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: 'Event not found' });
+      }
+      
+      res.status(204).send();
+    } catch (err) {
+      console.error('Error deleting event:', err);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // Admin
+  app.post('/api/admin/verify', async (req, res) => {
+    try {
+      const { password } = req.body;
+      
+      if (!password) {
+        return res.status(400).json({ message: 'Password is required' });
+      }
+      
+      const storedPassword = await storage.getSetting('adminPassword');
+      
+      if (password === storedPassword) {
+        res.json({ success: true });
+      } else {
+        res.status(401).json({ message: 'Invalid password' });
+      }
+    } catch (err) {
+      console.error('Error verifying admin password:', err);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  app.post('/api/admin/password', checkAdminPassword, async (req, res) => {
+    try {
+      const passwordData = passwordChangeSchema.parse(req.body);
+      
+      const storedPassword = await storage.getSetting('adminPassword');
+      
+      if (passwordData.currentPassword !== storedPassword) {
+        return res.status(401).json({ message: 'Current password is incorrect' });
+      }
+      
+      await storage.updateSetting('adminPassword', passwordData.newPassword);
+      
+      res.json({ success: true });
+    } catch (err) {
+      handleValidationError(err, res);
+    }
+  });
+  
+  app.post('/api/admin/sheets-config', checkAdminPassword, async (req, res) => {
+    try {
+      const config = googleSheetsConfigSchema.parse(req.body);
+      
+      await storage.updateSetting('googleSheetsId', config.sheetId);
+      await storage.updateSetting('googleServiceAccount', config.serviceAccount);
+      
+      res.json({ success: true });
+    } catch (err) {
+      handleValidationError(err, res);
+    }
+  });
+  
+  app.get('/api/admin/sheets-config', checkAdminPassword, async (req, res) => {
+    try {
+      const sheetId = await storage.getSetting('googleSheetsId') || '';
+      const serviceAccount = await storage.getSetting('googleServiceAccount') || '';
+      
+      res.json({
+        sheetId,
+        serviceAccount
+      });
+    } catch (err) {
+      console.error('Error getting Google Sheets config:', err);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  app.get('/api/admin/export-csv', checkAdminPassword, async (req, res) => {
+    try {
+      const volunteers = await storage.getVolunteers();
+      const allEvents = await storage.getEvents();
+      
+      // Format: "id,name,event,location,hours,date"
+      let csv = 'volunteer_id,volunteer_name,event,location,hours,date\n';
+      
+      for (const event of allEvents) {
+        const volunteer = volunteers.find(v => v.id === event.volunteerId);
+        if (volunteer) {
+          csv += `${volunteer.id},${volunteer.name},${event.event},${event.location},${event.hours},${event.date}\n`;
+        }
+      }
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename=volunteer_events.csv');
+      res.send(csv);
+    } catch (err) {
+      console.error('Error exporting CSV:', err);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  app.post('/api/admin/sync-sheets', checkAdminPassword, async (req, res) => {
+    try {
+      const sheetId = await storage.getSetting('googleSheetsId');
+      const serviceAccount = await storage.getSetting('googleServiceAccount');
+      
+      if (!sheetId || !serviceAccount) {
+        return res.status(400).json({ message: 'Google Sheets configuration is missing' });
+      }
+      
+      const volunteers = await storage.getVolunteers();
+      const events = await storage.getEvents();
+      
+      const result = await syncToGoogleSheets(sheetId, serviceAccount, volunteers, events);
+      
+      res.json(result);
+    } catch (err) {
+      console.error('Error syncing with Google Sheets:', err);
+      res.status(500).json({ 
+        message: 'Error syncing with Google Sheets', 
+        error: err instanceof Error ? err.message : 'Unknown error'
+      });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}

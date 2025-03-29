@@ -1,0 +1,281 @@
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Download, RefreshCcw, Save, AlertCircle, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
+import { PasswordChange, GoogleSheetsConfig } from "@shared/schema";
+
+interface AdminPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSyncClick: () => void;
+}
+
+export default function AdminPanel({
+  isOpen,
+  onClose,
+  onSyncClick
+}: AdminPanelProps) {
+  // Password state
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [isPasswordSubmitting, setIsPasswordSubmitting] = useState(false);
+  
+  // Google Sheets state
+  const [sheetId, setSheetId] = useState("");
+  const [serviceAccount, setServiceAccount] = useState("");
+  const [sheetsError, setSheetsError] = useState("");
+  const [isSheetsSubmitting, setIsSheetsSubmitting] = useState(false);
+  
+  const { toast } = useToast();
+  
+  // Fetch Google Sheets configuration
+  const { data: sheetsConfig, isLoading } = useQuery<GoogleSheetsConfig>({
+    queryKey: ['/api/admin/sheets-config'],
+    enabled: isOpen,
+  });
+  
+  // Set Google Sheets config when data is loaded
+  useEffect(() => {
+    if (sheetsConfig) {
+      setSheetId(sheetsConfig.sheetId || '');
+      setServiceAccount(sheetsConfig.serviceAccount || '');
+    }
+  }, [sheetsConfig]);
+  
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError("");
+    
+    if (newPassword !== confirmPassword) {
+      setPasswordError("Passwords don't match");
+      return;
+    }
+    
+    setIsPasswordSubmitting(true);
+    
+    try {
+      const passwordData: PasswordChange = {
+        currentPassword,
+        newPassword,
+        confirmPassword
+      };
+      
+      await apiRequest('POST', '/api/admin/password', passwordData);
+      
+      toast({
+        title: "Success",
+        description: "Password changed successfully"
+      });
+      
+      // Reset form
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      setPasswordError(error instanceof Error ? error.message : "Failed to change password");
+    } finally {
+      setIsPasswordSubmitting(false);
+    }
+  };
+  
+  const handleSheetsConfigSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSheetsError("");
+    
+    if (!sheetId.trim() || !serviceAccount.trim()) {
+      setSheetsError("Both Sheet ID and Service Account JSON are required");
+      return;
+    }
+    
+    setIsSheetsSubmitting(true);
+    
+    try {
+      const config: GoogleSheetsConfig = {
+        sheetId: sheetId.trim(),
+        serviceAccount: serviceAccount.trim()
+      };
+      
+      await apiRequest('POST', '/api/admin/sheets-config', config);
+      
+      toast({
+        title: "Success",
+        description: "Google Sheets configuration saved"
+      });
+    } catch (error) {
+      setSheetsError(error instanceof Error ? error.message : "Failed to save configuration");
+    } finally {
+      setIsSheetsSubmitting(false);
+    }
+  };
+  
+  const handleExportCsv = () => {
+    const a = document.createElement('a');
+    a.href = '/api/admin/export-csv';
+    a.download = 'volunteer_events.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="flex flex-row items-center justify-between">
+          <DialogTitle>Admin Panel</DialogTitle>
+          <DialogClose asChild>
+            <Button variant="ghost" size="icon">
+              <X className="h-4 w-4" />
+            </Button>
+          </DialogClose>
+        </DialogHeader>
+        
+        <Tabs defaultValue="data" className="mt-4">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="data">Data Management</TabsTrigger>
+            <TabsTrigger value="sheets">Google Sheets</TabsTrigger>
+            <TabsTrigger value="password">Change Password</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="data" className="py-4">
+            <h3 className="text-lg font-medium mb-4">Data Management</h3>
+            <div className="flex flex-wrap gap-3">
+              <Button 
+                onClick={handleExportCsv}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Export CSV
+              </Button>
+              <Button 
+                onClick={onSyncClick}
+                className="bg-[#4caf50] hover:bg-[#4caf50]/90 text-white"
+              >
+                <RefreshCcw className="mr-2 h-4 w-4" />
+                Sync to Google Sheets
+              </Button>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="sheets" className="py-4">
+            <h3 className="text-lg font-medium mb-4">Google Sheets Configuration</h3>
+            
+            {isLoading ? (
+              <div className="text-center py-4">Loading configuration...</div>
+            ) : (
+              <form onSubmit={handleSheetsConfigSave} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="sheet-id">Google Sheet ID</Label>
+                  <Input
+                    id="sheet-id"
+                    placeholder="Enter Google Sheet ID"
+                    value={sheetId}
+                    onChange={(e) => setSheetId(e.target.value)}
+                    disabled={isSheetsSubmitting}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="service-account">Service Account JSON</Label>
+                  <Textarea
+                    id="service-account"
+                    placeholder="Paste your service account JSON here"
+                    value={serviceAccount}
+                    onChange={(e) => setServiceAccount(e.target.value)}
+                    disabled={isSheetsSubmitting}
+                    className="h-36"
+                  />
+                </div>
+                
+                {sheetsError && (
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{sheetsError}</AlertDescription>
+                  </Alert>
+                )}
+                
+                <Button 
+                  type="submit"
+                  disabled={isSheetsSubmitting}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Configuration
+                </Button>
+              </form>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="password" className="py-4">
+            <h3 className="text-lg font-medium mb-4">Change Admin Password</h3>
+            
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="current-password">Current Password</Label>
+                <Input
+                  id="current-password"
+                  type="password"
+                  placeholder="Enter current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  disabled={isPasswordSubmitting}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <Input
+                  id="new-password"
+                  type="password"
+                  placeholder="Enter new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  disabled={isPasswordSubmitting}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  placeholder="Confirm new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={isPasswordSubmitting}
+                  required
+                />
+              </div>
+              
+              {passwordError && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertDescription>{passwordError}</AlertDescription>
+                </Alert>
+              )}
+              
+              <Button 
+                type="submit"
+                disabled={isPasswordSubmitting}
+                className="bg-primary hover:bg-primary/90"
+              >
+                Change Password
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
