@@ -92,9 +92,10 @@ export type InsertSetting = z.infer<typeof insertSettingSchema>;
 export type GoogleSheetsConfig = z.infer<typeof googleSheetsConfigSchema>;
 export type PasswordChange = z.infer<typeof passwordChangeSchema>;
 
-export type User = typeof users.$inferSelect;
-export type InsertUser = z.infer<typeof insertUserSchema>;
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
 });
+
+export type User = typeof users.$inferSelect;
+export type InsertUser = z.infer<typeof insertUserSchema>;
