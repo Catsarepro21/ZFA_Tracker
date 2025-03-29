@@ -49,8 +49,7 @@ export default function GoogleSyncModal({
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ password })
+        }
       });
       
       if (!response.ok) {

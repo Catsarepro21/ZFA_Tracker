@@ -124,11 +124,9 @@ export default function AdminPanel({
     setIsSheetsSubmitting(true);
     
     try {
-      // Include password in the request body
       const config = {
         sheetId: sheetId.trim(),
-        serviceAccount: serviceAccount.trim(),
-        password: password // Include password in the request body
+        serviceAccount: serviceAccount.trim()
       };
       
       const headers = {
@@ -158,9 +156,8 @@ export default function AdminPanel({
   };
   
   const handleExportCsv = () => {
-    // Use the query parameter approach which is more reliable
     const a = document.createElement('a');
-    a.href = `/api/admin/export-csv?password=${encodeURIComponent(password)}`;
+    a.href = `/api/admin/export-csv`;
     a.download = 'volunteer_events.csv';
     document.body.appendChild(a);
     a.click();

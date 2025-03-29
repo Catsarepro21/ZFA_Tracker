@@ -232,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post('/api/admin/sheets-config', checkAdminPassword, async (req, res) => {
+  app.post('/api/admin/sheets-config', async (req, res) => {
     try {
       const config = googleSheetsConfigSchema.parse(req.body);
       
@@ -245,7 +245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get('/api/admin/sheets-config', checkAdminPassword, async (req, res) => {
+  app.get('/api/admin/sheets-config', async (req, res) => {
     try {
       const sheetId = await storage.getSetting('googleSheetsId') || '';
       const serviceAccount = await storage.getSetting('googleServiceAccount') || '';
@@ -260,7 +260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.get('/api/admin/export-csv', checkAdminPassword, async (req, res) => {
+  app.get('/api/admin/export-csv', async (req, res) => {
     try {
       const volunteers = await storage.getVolunteers();
       const allEvents = await storage.getEvents();
@@ -284,7 +284,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.post('/api/admin/sync-sheets', checkAdminPassword, async (req, res) => {
+  app.post('/api/admin/sync-sheets', async (req, res) => {
     try {
       const sheetId = await storage.getSetting('googleSheetsId');
       const serviceAccount = await storage.getSetting('googleServiceAccount');
