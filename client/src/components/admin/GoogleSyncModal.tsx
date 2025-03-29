@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { apiRequest } from "@/lib/queryClient";
+import { useAdmin } from "@/hooks/useAdmin";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 interface GoogleSyncModalProps {
@@ -14,6 +15,7 @@ export default function GoogleSyncModal({
   isOpen,
   onClose
 }: GoogleSyncModalProps) {
+  const { password } = useAdmin();
   const [progress, setProgress] = useState(0);
   const [status, setStatus] = useState<'syncing' | 'success' | 'error'>('syncing');
   const [errorMessage, setErrorMessage] = useState("");
@@ -43,7 +45,7 @@ export default function GoogleSyncModal({
   
   const syncWithGoogleSheets = async () => {
     try {
-      await apiRequest('POST', '/api/admin/sync-sheets', {});
+      await apiRequest('POST', '/api/admin/sync-sheets', { password });
       setProgress(100);
       setStatus('success');
     } catch (error) {

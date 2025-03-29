@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Download, RefreshCcw, Save, AlertCircle, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAdmin } from "@/hooks/useAdmin";
 import { apiRequest } from "@/lib/queryClient";
 import { useQuery } from "@tanstack/react-query";
 import { PasswordChange, GoogleSheetsConfig } from "@shared/schema";
@@ -23,6 +24,7 @@ export default function AdminPanel({
   onClose,
   onSyncClick
 }: AdminPanelProps) {
+  const { password } = useAdmin();
   // Password state
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -42,7 +44,16 @@ export default function AdminPanel({
   // Fetch Google Sheets configuration
   const { data: sheetsConfig, isLoading } = useQuery<GoogleSheetsConfig>({
     queryKey: ['/api/admin/sheets-config'],
-    enabled: isOpen,
+    enabled: isOpen && !!password,
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/admin/sheets-config', { password });
+        return response;
+      } catch (error) {
+        console.error('Error fetching Google Sheets config:', error);
+        return { sheetId: '', serviceAccount: '' };
+      }
+    }
   });
   
   // Set Google Sheets config when data is loaded
@@ -65,10 +76,11 @@ export default function AdminPanel({
     setIsPasswordSubmitting(true);
     
     try {
-      const passwordData: PasswordChange = {
+      const passwordData = {
         currentPassword,
         newPassword,
-        confirmPassword
+        confirmPassword,
+        password
       };
       
       await apiRequest('POST', '/api/admin/password', passwordData);
@@ -101,9 +113,10 @@ export default function AdminPanel({
     setIsSheetsSubmitting(true);
     
     try {
-      const config: GoogleSheetsConfig = {
+      const config = {
         sheetId: sheetId.trim(),
-        serviceAccount: serviceAccount.trim()
+        serviceAccount: serviceAccount.trim(),
+        password
       };
       
       await apiRequest('POST', '/api/admin/sheets-config', config);
@@ -121,7 +134,7 @@ export default function AdminPanel({
   
   const handleExportCsv = () => {
     const a = document.createElement('a');
-    a.href = '/api/admin/export-csv';
+    a.href = `/api/admin/export-csv?password=${encodeURIComponent(password)}`;
     a.download = 'volunteer_events.csv';
     document.body.appendChild(a);
     a.click();

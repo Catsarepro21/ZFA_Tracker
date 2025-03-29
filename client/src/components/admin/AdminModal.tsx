@@ -7,6 +7,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAdmin } from "@/hooks/useAdmin";
 
 interface AdminModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export default function AdminModal({
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { verifyAdmin } = useAdmin();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,6 +43,7 @@ export default function AdminModal({
         title: "Success",
         description: "Admin login successful"
       });
+      verifyAdmin(true, password);
       onLogin(true);
     } catch (error) {
       setError("Invalid password. Please try again.");
