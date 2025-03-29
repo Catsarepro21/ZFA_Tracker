@@ -46,11 +46,7 @@ export default function AdminPanel({
     queryKey: ['/api/admin/sheets-config'],
     enabled: isOpen && !!password,
     queryFn: async () => {
-      const response = await fetch(`/api/admin/sheets-config?password=${encodeURIComponent(password)}`, {
-        headers: {
-          'X-ADMIN-PASSWORD': password
-        }
-      });
+      const response = await fetch(`/api/admin/sheets-config?password=${encodeURIComponent(password)}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch Google Sheets configuration');
@@ -83,14 +79,14 @@ export default function AdminPanel({
       const passwordData = {
         currentPassword,
         newPassword,
-        confirmPassword
+        confirmPassword,
+        password // Include the admin password directly in the request body
       };
       
       const response = await fetch('/api/admin/password', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-ADMIN-PASSWORD': password
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(passwordData)
       });
@@ -128,15 +124,15 @@ export default function AdminPanel({
     setIsSheetsSubmitting(true);
     
     try {
-      // Use a header for admin authentication
+      // Include password in the request body
       const config = {
         sheetId: sheetId.trim(),
-        serviceAccount: serviceAccount.trim()
+        serviceAccount: serviceAccount.trim(),
+        password: password // Include password in the request body
       };
       
       const headers = {
-        'Content-Type': 'application/json',
-        'X-ADMIN-PASSWORD': password
+        'Content-Type': 'application/json'
       };
       
       const response = await fetch('/api/admin/sheets-config', {
@@ -162,33 +158,13 @@ export default function AdminPanel({
   };
   
   const handleExportCsv = () => {
-    // Create a new XMLHttpRequest instead of using anchor link
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', '/api/admin/export-csv', true);
-    xhr.setRequestHeader('X-ADMIN-PASSWORD', password);
-    xhr.responseType = 'blob';
-    
-    xhr.onload = function() {
-      if (xhr.status === 200) {
-        // Create a download link
-        const url = window.URL.createObjectURL(new Blob([xhr.response]));
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'volunteer_events.csv';
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      } else {
-        toast({
-          title: "Error",
-          description: "Failed to download CSV file",
-          variant: "destructive"
-        });
-      }
-    };
-    
-    xhr.send();
+    // Use the query parameter approach which is more reliable
+    const a = document.createElement('a');
+    a.href = `/api/admin/export-csv?password=${encodeURIComponent(password)}`;
+    a.download = 'volunteer_events.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
   
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {

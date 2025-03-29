@@ -48,9 +48,9 @@ export default function GoogleSyncModal({
       const response = await fetch('/api/admin/sync-sheets', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'X-ADMIN-PASSWORD': password
-        }
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ password })
       });
       
       if (!response.ok) {
