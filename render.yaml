@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: volunteer-tracker
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+    # The following settings prevent render from putting your app to sleep
+    plan: free
+    autoDeploy: true
+    scaling:
+      minInstances: 1
+      maxInstances: 1

@@ -8,7 +8,9 @@ import { Toaster } from "@/components/ui/toaster";
 // Register service worker for PWA support
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
+    // Using the full path to make sure it works on all deployment platforms
+    const swPath = window.location.origin + '/service-worker.js';
+    navigator.serviceWorker.register(swPath)
       .then(registration => {
         console.log('Service Worker registered with scope:', registration.scope);
       })
