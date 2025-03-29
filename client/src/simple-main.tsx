@@ -1,13 +1,13 @@
 import React from 'react';
-import { createRoot } from 'react-dom/client';
-import SimpleApp from './SimpleApp';
-import './index.css';
+import ReactDOM from 'react-dom/client';
 
-const rootElement = document.getElementById('root');
-
-if (!rootElement) {
-  throw new Error('Root element not found');
+function SimpleApp() {
+  return (
+    <div>
+      <h1>Hello from Simple React App</h1>
+    </div>
+  );
 }
 
-const root = createRoot(rootElement);
+const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<SimpleApp />);

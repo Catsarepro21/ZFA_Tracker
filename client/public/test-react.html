@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React Test</title>
+  <!-- Load React from CDN -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <!-- Load Babel to transpile JSX -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f4f8;
+    }
+    #container {
+      text-align: center;
+      padding: 2rem;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+    }
+    button {
+      padding: 0.5rem 1rem;
+      margin: 0 0.5rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .count {
+      font-size: 2rem;
+      margin: 1rem 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!-- React component -->
+  <script type="text/babel">
+    function App() {
+      const [count, setCount] = React.useState(0);
+      
+      return (
+        <div id="container">
+          <h1>React Test Page</h1>
+          <p>This is a standalone React test using CDN resources</p>
+          
+          <div className="count">{count}</div>
+          
+          <div>
+            <button 
+              onClick={() => setCount(count - 1)}
+              style={{ backgroundColor: '#f87171', color: 'white' }}
+            >
+              Decrease
+            </button>
+            <button 
+              onClick={() => setCount(0)}
+              style={{ backgroundColor: '#9ca3af', color: 'white' }}
+            >
+              Reset
+            </button>
+            <button 
+              onClick={() => setCount(count + 1)}
+              style={{ backgroundColor: '#60a5fa', color: 'white' }}
+            >
+              Increase
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
