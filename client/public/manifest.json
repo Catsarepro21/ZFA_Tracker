@@ -2,20 +2,67 @@
   "name": "Volunteer Tracker",
   "short_name": "Volunteers",
   "description": "Track volunteer hours and events",
-  "start_url": "/",
-  "display": "standalone",
+  "start_url": "/?source=pwa",
   "background_color": "#ffffff",
-  "theme_color": "#3f51b5",
+  "theme_color": "#4caf50",
+  "display": "standalone",
+  "orientation": "any",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233f51b5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E",
+      "src": "/icon-192x192.svg",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233f51b5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E",
+      "src": "/icon-512x512.svg",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192x192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512x512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
     }
-  ]
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide"
+    },
+    {
+      "src": "/screenshot2.png",
+      "sizes": "750x1334",
+      "type": "image/png",
+      "platform": "narrow"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Event",
+      "short_name": "Add",
+      "description": "Add a new volunteer event",
+      "url": "/?action=add-event"
+    },
+    {
+      "name": "Volunteers",
+      "short_name": "People",
+      "description": "View all volunteers",
+      "url": "/?action=view-volunteers"
+    }
+  ],
+  "categories": ["productivity", "utilities"],
+  "dir": "ltr",
+  "lang": "en-US",
+  "prefer_related_applications": false
 }

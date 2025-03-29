@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Download, RefreshCcw, Save, AlertCircle, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Download, RefreshCcw, Save, AlertCircle, X, Wifi } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAdmin } from "@/hooks/useAdmin";
 import { apiRequest } from "@/lib/queryClient";
@@ -35,6 +36,7 @@ export default function AdminPanel({
   // Google Sheets state
   const [sheetId, setSheetId] = useState("");
   const [serviceAccount, setServiceAccount] = useState("");
+  const [autoSync, setAutoSync] = useState(false);
   const [sheetsError, setSheetsError] = useState("");
   const [isSheetsSubmitting, setIsSheetsSubmitting] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState("");
@@ -61,8 +63,15 @@ export default function AdminPanel({
     if (sheetsConfig) {
       setSheetId(sheetsConfig.sheetId || '');
       setServiceAccount(sheetsConfig.serviceAccount || '');
+      setAutoSync(sheetsConfig.autoSync || false);
     }
   }, [sheetsConfig]);
+  
+  // Format the last sync timestamp to a readable date
+  const formatLastSyncTime = (timestamp: number | null | undefined) => {
+    if (!timestamp) return 'Never';
+    return new Date(timestamp).toLocaleString();
+  };
   
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,7 +135,9 @@ export default function AdminPanel({
     try {
       const config = {
         sheetId: sheetId.trim(),
-        serviceAccount: serviceAccount.trim()
+        serviceAccount: serviceAccount.trim(),
+        autoSync: autoSync,
+        lastSyncTimestamp: Date.now()
       };
       
       const headers = {
@@ -281,6 +292,28 @@ export default function AdminPanel({
                     className="h-36"
                   />
                 </div>
+                
+                <div className="flex items-center space-x-2 pt-2">
+                  <Switch
+                    id="auto-sync"
+                    checked={autoSync}
+                    onCheckedChange={setAutoSync}
+                    disabled={isSheetsSubmitting}
+                  />
+                  <div>
+                    <Label htmlFor="auto-sync" className="cursor-pointer">Enable Hourly Auto-Sync</Label>
+                    <p className="text-sm text-muted-foreground">
+                      <Wifi className="inline-block h-3 w-3 mr-1" />
+                      Automatically sync with Google Sheets every hour when WiFi is connected
+                    </p>
+                  </div>
+                </div>
+
+                {sheetsConfig?.lastSyncTimestamp && (
+                  <div className="text-sm text-muted-foreground italic mt-2">
+                    Last synchronized: {formatLastSyncTime(sheetsConfig.lastSyncTimestamp)}
+                  </div>
+                )}
                 
                 {sheetsError && (
                   <Alert variant="destructive">

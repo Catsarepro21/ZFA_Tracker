@@ -249,6 +249,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.updateSetting('googleSheetsId', config.sheetId);
       await storage.updateSetting('googleServiceAccount', config.serviceAccount);
       
+      // Handle auto-sync settings
+      if (config.autoSync !== undefined) {
+        await storage.updateSetting('googleSheetsAutoSync', config.autoSync.toString());
+      }
+      
+      if (config.lastSyncTimestamp !== undefined) {
+        await storage.updateSetting('googleSheetsLastSync', config.lastSyncTimestamp.toString());
+      }
+      
       res.json({ success: true });
     } catch (err) {
       handleValidationError(err, res);
@@ -259,10 +268,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const sheetId = await storage.getSetting('googleSheetsId') || '';
       const serviceAccount = await storage.getSetting('googleServiceAccount') || '';
+      const autoSyncStr = await storage.getSetting('googleSheetsAutoSync') || 'false';
+      const lastSyncTimestampStr = await storage.getSetting('googleSheetsLastSync') || '0';
+      
+      const autoSync = autoSyncStr === 'true';
+      const lastSyncTimestamp = parseInt(lastSyncTimestampStr) || 0;
       
       res.json({
         sheetId,
-        serviceAccount
+        serviceAccount,
+        autoSync,
+        lastSyncTimestamp
       });
     } catch (err) {
       console.error('Error getting Google Sheets config:', err);

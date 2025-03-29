@@ -68,6 +68,8 @@ export const insertSettingSchema = createInsertSchema(settings).pick({
 export const googleSheetsConfigSchema = z.object({
   sheetId: z.string().min(1, "Sheet ID is required"),
   serviceAccount: z.string().min(1, "Service account JSON is required"),
+  autoSync: z.boolean().optional(),
+  lastSyncTimestamp: z.number().optional(),
 });
 
 export const passwordChangeSchema = z.object({

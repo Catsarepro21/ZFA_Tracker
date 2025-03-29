@@ -1,6 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { storage } from "./storage";
+import { syncToGoogleSheets } from "./sheets";
 
 const app = express();
 app.use(express.json());
@@ -66,5 +68,77 @@ app.use((req, res, next) => {
     reusePort: true,
   }, () => {
     log(`serving on port ${port}`);
+    
+    // Set up hourly auto-sync with Google Sheets if enabled
+    setupAutoSync();
   });
+  
+  // Function to check and perform auto-sync
+  async function setupAutoSync() {
+    setInterval(async () => {
+      try {
+        // Check if auto-sync is enabled
+        const autoSyncStr = await storage.getSetting('googleSheetsAutoSync');
+        if (autoSyncStr !== 'true') return;
+        
+        // Get sync config
+        const sheetId = await storage.getSetting('googleSheetsId');
+        const serviceAccount = await storage.getSetting('googleServiceAccount');
+        
+        if (!sheetId || !serviceAccount) {
+          log('Auto-sync skipped: Missing Google Sheets configuration');
+          return;
+        }
+        
+        // Check if we are online by attempting to connect to Google's DNS
+        const isOnline = await checkOnlineStatus();
+        if (!isOnline) {
+          log('Auto-sync skipped: No internet connection');
+          return;
+        }
+        
+        // Perform the sync
+        log('Starting auto-sync with Google Sheets...');
+        
+        const volunteers = await storage.getVolunteers();
+        const events = await storage.getEvents();
+        
+        // Sort volunteers alphabetically
+        const sortedVolunteers = [...volunteers].sort((a, b) => 
+          a.name.localeCompare(b.name)
+        );
+        
+        const result = await syncToGoogleSheets(sheetId, serviceAccount, sortedVolunteers, events, storage);
+        
+        // Update last sync timestamp
+        await storage.updateSetting('googleSheetsLastSync', Date.now().toString());
+        
+        log(`Auto-sync completed successfully`);
+      } catch (err) {
+        log(`Auto-sync error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
+    }, 60 * 60 * 1000); // Check every hour
+    
+    log('Auto-sync scheduler initialized');
+  }
+  
+  // Function to check if we have internet connectivity
+  async function checkOnlineStatus(): Promise<boolean> {
+    return new Promise((resolve) => {
+      const https = require('https');
+      const req = https.get('https://8.8.8.8', { timeout: 5000 }, (res: any) => {
+        resolve(true);
+        req.abort(); // We don't need the actual response
+      });
+      
+      req.on('error', () => {
+        resolve(false);
+      });
+      
+      req.on('timeout', () => {
+        req.abort();
+        resolve(false);
+      });
+    });
+  };
 })();

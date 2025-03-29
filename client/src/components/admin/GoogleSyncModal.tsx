@@ -57,12 +57,45 @@ export default function GoogleSyncModal({
         throw new Error(errorData.message || 'Failed to sync with Google Sheets');
       }
       
+      // Update the last sync timestamp
+      await updateLastSyncTime();
+      
       setProgress(100);
       setStatus('success');
     } catch (error) {
       setProgress(100);
       setStatus('error');
       setErrorMessage(error instanceof Error ? error.message : "Failed to sync with Google Sheets");
+    }
+  };
+  
+  const updateLastSyncTime = async () => {
+    try {
+      // Get current Google Sheets config
+      const configResponse = await fetch('/api/admin/sheets-config');
+      if (!configResponse.ok) {
+        throw new Error('Failed to fetch Google Sheets configuration');
+      }
+      
+      const config = await configResponse.json();
+      
+      // Update the lastSyncTimestamp
+      const updateResponse = await fetch('/api/admin/sheets-config', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ...config,
+          lastSyncTimestamp: Date.now()
+        })
+      });
+      
+      if (!updateResponse.ok) {
+        throw new Error('Failed to update last sync timestamp');
+      }
+    } catch (error) {
+      console.error('Error updating last sync timestamp:', error);
     }
   };
 
