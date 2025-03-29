@@ -25,14 +25,24 @@ function checkAdminPassword(req: Request, res: Response, next: Function) {
   // Check for password in request body, query parameters, or headers
   const password = req.body.password || req.query.password || req.headers['x-admin-password'];
   
+  console.log('Auth check - Method:', req.method);
+  console.log('Auth check - URL:', req.url);
+  console.log('Auth check - Body:', JSON.stringify(req.body));
+  console.log('Auth check - Query:', JSON.stringify(req.query));
+  console.log('Auth check - Headers:', JSON.stringify(req.headers));
+  console.log('Auth check - Password received:', password);
+  
   if (!password) {
     return res.status(401).json({ message: 'Password is required' });
   }
   
   storage.getSetting('adminPassword').then(storedPassword => {
+    console.log('Auth check - Stored password exists:', !!storedPassword);
     if (password === storedPassword) {
+      console.log('Auth check - Password match: PASS');
       next();
     } else {
+      console.log('Auth check - Password match: FAIL');
       res.status(401).json({ message: 'Invalid password' });
     }
   }).catch(err => {

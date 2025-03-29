@@ -43,17 +43,8 @@ export default function AdminPanel({
   
   // Fetch Google Sheets configuration
   const { data: sheetsConfig, isLoading } = useQuery<GoogleSheetsConfig>({
-    queryKey: ['/api/admin/sheets-config'],
-    enabled: isOpen && !!password,
-    queryFn: async () => {
-      try {
-        const response = await apiRequest('GET', '/api/admin/sheets-config', { password });
-        return response;
-      } catch (error) {
-        console.error('Error fetching Google Sheets config:', error);
-        return { sheetId: '', serviceAccount: '' };
-      }
-    }
+    queryKey: ['/api/admin/sheets-config', { password }],
+    enabled: isOpen && !!password
   });
   
   // Set Google Sheets config when data is loaded
