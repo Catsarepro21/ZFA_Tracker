@@ -56,11 +56,18 @@ export default function VolunteerSidebar({
                 )}
                 onClick={() => onSelectVolunteer(volunteer)}
               >
-                <div className="flex justify-between items-center">
-                  <span>{volunteer.name}</span>
-                  <span className="text-xs text-text-secondary">
-                    {volunteer.eventCount || 0} events
-                  </span>
+                <div className="flex flex-col">
+                  <div className="flex justify-between items-center">
+                    <span>{volunteer.name}</span>
+                    <span className="text-xs text-text-secondary">
+                      {volunteer.eventCount || 0} events
+                    </span>
+                  </div>
+                  {volunteer.email && (
+                    <span className="text-xs text-text-secondary truncate max-w-[200px]">
+                      {volunteer.email}
+                    </span>
+                  )}
                 </div>
               </li>
             ))}

@@ -19,6 +19,7 @@ export default function AddVolunteerModal({
   onAddVolunteer
 }: AddVolunteerModalProps) {
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -42,13 +43,19 @@ export default function AddVolunteerModal({
     setIsSubmitting(true);
     
     try {
-      await apiRequest('POST', '/api/volunteers', { name: name.trim() });
+      const volunteerData = {
+        name: name.trim(),
+        email: email.trim() || null // Send null if empty string
+      };
+      
+      await apiRequest('POST', '/api/volunteers', volunteerData);
       toast({
         title: "Success",
         description: "Volunteer added successfully"
       });
       
       setName("");
+      setEmail("");
       await refetch();
       await onAddVolunteer(name);
     } catch (error) {
@@ -79,6 +86,18 @@ export default function AddVolunteerModal({
               onChange={(e) => setName(e.target.value)}
               disabled={isSubmitting}
               required
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="volunteer-email">Email (Optional)</Label>
+            <Input
+              id="volunteer-email"
+              type="email"
+              placeholder="Enter email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isSubmitting}
             />
           </div>
           

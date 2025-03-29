@@ -11,6 +11,7 @@ export const users = pgTable("users", {
 export const volunteers = pgTable("volunteers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  email: text("email"),
 });
 
 export const events = pgTable("events", {
@@ -31,11 +32,13 @@ export const settings = pgTable("settings", {
 // Volunteer schemas
 export const insertVolunteerSchema = createInsertSchema(volunteers).pick({
   name: true,
+  email: true,
 });
 
 export const volunteerSchema = z.object({
   id: z.number(),
   name: z.string().min(1, "Name is required"),
+  email: z.string().email("Invalid email address").optional().nullable(),
 });
 
 // Event schemas

@@ -35,6 +35,7 @@ export default function AdminPanel({
   const [serviceAccount, setServiceAccount] = useState("");
   const [sheetsError, setSheetsError] = useState("");
   const [isSheetsSubmitting, setIsSheetsSubmitting] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState("");
   
   const { toast } = useToast();
   
@@ -126,6 +127,34 @@ export default function AdminPanel({
     a.click();
     document.body.removeChild(a);
   };
+  
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setUploadedFileName(file.name);
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        // Validate that it's a valid JSON
+        JSON.parse(content);
+        setServiceAccount(content);
+        toast({
+          title: "Success",
+          description: "Service account JSON file loaded successfully"
+        });
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Invalid JSON file. Please upload a valid service account JSON file.",
+          variant: "destructive"
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -186,9 +215,30 @@ export default function AdminPanel({
                 
                 <div className="space-y-2">
                   <Label htmlFor="service-account">Service Account JSON</Label>
+                  <div className="mb-2">
+                    <div className="flex items-center gap-2">
+                      <Label 
+                        htmlFor="service-account-file" 
+                        className="cursor-pointer bg-primary/10 hover:bg-primary/20 px-3 py-2 rounded-md text-sm transition-colors"
+                      >
+                        Upload JSON File
+                      </Label>
+                      {uploadedFileName && (
+                        <span className="text-xs text-text-secondary">{uploadedFileName}</span>
+                      )}
+                    </div>
+                    <Input
+                      id="service-account-file"
+                      type="file"
+                      accept=".json"
+                      onChange={handleFileUpload}
+                      disabled={isSheetsSubmitting}
+                      className="hidden"
+                    />
+                  </div>
                   <Textarea
                     id="service-account"
-                    placeholder="Paste your service account JSON here"
+                    placeholder="Or paste your service account JSON here"
                     value={serviceAccount}
                     onChange={(e) => setServiceAccount(e.target.value)}
                     disabled={isSheetsSubmitting}
