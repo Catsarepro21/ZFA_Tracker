@@ -1,0 +1,32 @@
+{
+  "appId": "com.volunteertracker.app",
+  "productName": "Volunteer Tracker",
+  "copyright": "Copyright © 2023",
+  "directories": {
+    "output": "electron-dist",
+    "buildResources": "."
+  },
+  "files": [
+    "dist/**/*",
+    "electron/**/*",
+    "node_modules/**/*",
+    "package.json"
+  ],
+  "mac": {
+    "category": "public.app-category.productivity",
+    "target": ["dmg", "zip"],
+    "icon": "generated-icon.png"
+  },
+  "win": {
+    "target": ["nsis", "portable"],
+    "icon": "generated-icon.png"
+  },
+  "linux": {
+    "target": ["AppImage", "deb"],
+    "icon": "generated-icon.png"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
+  }
+}

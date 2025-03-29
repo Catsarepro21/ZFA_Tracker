@@ -1,5 +1,22 @@
 // Service worker registration and related utilities
 
+// Check if running in Electron
+const isElectron = () => {
+  // Renderer process
+  if (typeof window !== 'undefined' && typeof window.process === 'object' && window.process.type === 'renderer') {
+    return true;
+  }
+  // Main process
+  if (typeof process !== 'undefined' && typeof process.versions === 'object' && !!process.versions.electron) {
+    return true;
+  }
+  // Detect the user agent when the `nodeIntegration` option is set to true
+  if (typeof navigator === 'object' && typeof navigator.userAgent === 'string' && navigator.userAgent.indexOf('Electron') >= 0) {
+    return true;
+  }
+  return false;
+};
+
 const isLocalhost = Boolean(
   window.location.hostname === 'localhost' ||
     window.location.hostname === '[::1]' ||
@@ -13,6 +30,12 @@ type Config = {
 };
 
 export function register(config?: Config): void {
+  // Skip service worker registration in Electron
+  if (isElectron()) {
+    console.log('Running in Electron, skipping service worker registration');
+    return;
+  }
+  
   if ('serviceWorker' in navigator) {
     // The URL constructor is available in all browsers that support SW
     const publicUrl = new URL(window.location.href);
@@ -86,6 +109,12 @@ export function unregister(): void {
 // Check if the app can be installed (PWA criteria met)
 export function checkInstallable(): Promise<boolean> {
   return new Promise((resolve) => {
+    // In Electron, the app is already "installed" as a desktop app
+    if (isElectron()) {
+      resolve(false);
+      return;
+    }
+    
     if (!window.matchMedia('(display-mode: browser)').matches) {
       // Already installed
       resolve(false);

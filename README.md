@@ -1,6 +1,6 @@
 # Volunteer Tracker
 
-A Progressive Web App for tracking volunteer hours and activities.
+A comprehensive application for tracking volunteer hours and activities, available as both a Progressive Web App (PWA) and a desktop application.
 
 ## Features
 
@@ -9,6 +9,7 @@ A Progressive Web App for tracking volunteer hours and activities.
 - Offline functionality with local data storage
 - Admin mode for managing data and syncing with Google Sheets
 - Installable as a PWA for mobile and desktop
+- Available as a native desktop application for Windows, macOS, and Linux
 
 ## Running the Application
 
@@ -88,6 +89,45 @@ To configure Google Sheets synchronization, you'll need:
 
 Enter these in the admin panel under "Google Sheets Configuration".
 
+## Desktop Application
+
+The application is also available as a native desktop application using Electron:
+
+### Running in Desktop Mode
+
+To run the application as a desktop app in development mode:
+
+1. **Windows**:
+   ```
+   electron-start.bat
+   ```
+
+2. **Mac/Linux**:
+   ```
+   chmod +x electron-start.sh
+   ./electron-start.sh
+   ```
+
+### Building Desktop Application
+
+To create installable packages for distribution:
+
+1. **Windows**:
+   ```
+   build-electron.bat
+   ```
+
+2. **Mac/Linux**:
+   ```
+   chmod +x build-electron.sh
+   ./build-electron.sh
+   ```
+
+This will create distribution packages in the `electron-dist` folder for your platform:
+- Windows: NSIS installer (.exe) and portable (.exe)
+- macOS: DMG (.dmg) and ZIP (.zip)
+- Linux: AppImage (.AppImage) and Debian package (.deb)
+
 ## Troubleshooting
 
 If you encounter errors when running locally:
@@ -95,3 +135,4 @@ If you encounter errors when running locally:
 1. **Port already in use**: Change the port in server/index.ts
 2. **Socket errors**: Make sure to set USE_LOCALHOST=true as described above
 3. **Module not found errors**: Run `npm install` again to ensure all dependencies are installed
+4. **Electron errors**: Make sure to install Electron properly with `npm install electron electron-builder`

@@ -3,11 +3,28 @@ import { Button } from '@/components/ui/button';
 import { Download, X } from 'lucide-react';
 import { checkInstallable, promptInstall } from '@/lib/serviceWorker';
 
+// Function to check if app is running in Electron
+const isElectron = () => {
+  // Check if window.electron exists (set by our preload script)
+  if (typeof window !== 'undefined' && window.electron) {
+    return true;
+  }
+  
+  // Fallback detection
+  const userAgent = navigator.userAgent.toLowerCase();
+  return userAgent.indexOf(' electron/') > -1;
+};
+
 export function InstallPrompt() {
   const [showPrompt, setShowPrompt] = useState(false);
   const [isInstalling, setIsInstalling] = useState(false);
   
   useEffect(() => {
+    // Don't show install prompt if running in Electron
+    if (isElectron()) {
+      return;
+    }
+    
     // Check if the app is installable after a delay
     const timeoutId = setTimeout(async () => {
       const isInstallable = await checkInstallable();
