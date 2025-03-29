@@ -70,35 +70,21 @@ export default function EventsTable({
           <TableHeader>
             <TableRow>
               <TableHead>Date</TableHead>
-              <TableHead className="hidden md:table-cell">Event</TableHead>
-              <TableHead className="hidden md:table-cell">Location</TableHead>
-              <TableHead className="hidden md:table-cell">Hours</TableHead>
-              {isAdmin && <TableHead className="hidden md:table-cell">Actions</TableHead>}
+              <TableHead>Event</TableHead>
+              <TableHead>Location</TableHead>
+              <TableHead>Hours</TableHead>
+              {isAdmin && <TableHead>Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {Array(4).fill(0).map((_, i) => (
               <TableRow key={i}>
-                <TableCell>
-                  <Skeleton className="h-5 w-24" />
-                  {/* Mobile skeleton for collapsed view */}
-                  <div className="md:hidden mt-3">
-                    <Skeleton className="h-4 w-48 mb-2" />
-                    <Skeleton className="h-4 w-40 mb-2" />
-                    <Skeleton className="h-4 w-20 mb-2" />
-                    {isAdmin && (
-                      <div className="flex mt-2 space-x-2">
-                        <Skeleton className="h-8 w-16 rounded-md" />
-                        <Skeleton className="h-8 w-20 rounded-md" />
-                      </div>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-32" /></TableCell>
-                <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-40" /></TableCell>
-                <TableCell className="hidden md:table-cell"><Skeleton className="h-5 w-16" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-16" /></TableCell>
                 {isAdmin && (
-                  <TableCell className="hidden md:table-cell">
+                  <TableCell>
                     <div className="flex space-x-2">
                       <Skeleton className="h-8 w-8 rounded-md" />
                       <Skeleton className="h-8 w-8 rounded-md" />
@@ -139,11 +125,10 @@ export default function EventsTable({
                 {sortField === 'date' && (
                   sortDirection === 'asc' ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />
                 )}
-                <span className="md:hidden text-xs text-gray-400 ml-1">(tap for details)</span>
               </div>
             </TableHead>
             <TableHead 
-              className="hidden md:table-cell cursor-pointer hover:text-primary transition-colors"
+              className="cursor-pointer hover:text-primary transition-colors"
               onClick={() => handleSort('event')}
             >
               <div className="flex items-center gap-1">
@@ -154,7 +139,7 @@ export default function EventsTable({
               </div>
             </TableHead>
             <TableHead 
-              className="hidden md:table-cell cursor-pointer hover:text-primary transition-colors"
+              className="cursor-pointer hover:text-primary transition-colors"
               onClick={() => handleSort('location')}
             >
               <div className="flex items-center gap-1">
@@ -165,7 +150,7 @@ export default function EventsTable({
               </div>
             </TableHead>
             <TableHead 
-              className="hidden md:table-cell cursor-pointer hover:text-primary transition-colors"
+              className="cursor-pointer hover:text-primary transition-colors"
               onClick={() => handleSort('hours')}
             >
               <div className="flex items-center gap-1">
@@ -175,49 +160,18 @@ export default function EventsTable({
                 )}
               </div>
             </TableHead>
-            {isAdmin && <TableHead className="hidden md:table-cell">Actions</TableHead>}
+            {isAdmin && <TableHead>Actions</TableHead>}
           </TableRow>
         </TableHeader>
         <TableBody>
           {sortedEvents.map((event) => (
             <TableRow key={event.id} className="hover:bg-background">
-              <TableCell>
-                {formatDate(event.date)}
-                {/* Mobile-only description that stacks the data vertically */}
-                <div className="md:hidden mt-2">
-                  <div><strong>Event:</strong> {event.event}</div>
-                  <div><strong>Location:</strong> {event.location}</div>
-                  <div><strong>Hours:</strong> {event.hours}</div>
-                  {isAdmin && (
-                    <div className="flex mt-2 space-x-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="text-primary"
-                        onClick={() => onEdit(event)}
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        className="text-destructive"
-                        onClick={() => onDelete(event.id)}
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </TableCell>
-              {/* These cells are hidden on mobile but shown on larger screens */}
-              <TableCell className="hidden md:table-cell">{event.event}</TableCell>
-              <TableCell className="hidden md:table-cell">{event.location}</TableCell>
-              <TableCell className="hidden md:table-cell">{event.hours}</TableCell>
+              <TableCell>{formatDate(event.date)}</TableCell>
+              <TableCell>{event.event}</TableCell>
+              <TableCell>{event.location}</TableCell>
+              <TableCell>{event.hours}</TableCell>
               {isAdmin && (
-                <TableCell className="hidden md:table-cell">
+                <TableCell>
                   <div className="flex space-x-2">
                     <Button 
                       variant="ghost" 

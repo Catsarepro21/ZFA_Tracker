@@ -11,7 +11,7 @@ import { useVolunteers } from "@/hooks/useVolunteers";
 import { useEvents } from "@/hooks/useEvents";
 import { useAdmin } from "@/hooks/useAdmin";
 import { Button } from "@/components/ui/button";
-import { Menu, User, PlusCircle, Settings, LogOut, ChevronLeft } from "lucide-react";
+import { Menu, User, PlusCircle, Settings, LogOut } from "lucide-react";
 import { Volunteer, Event } from "@shared/schema";
 import { calculateTotalHours } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -147,42 +147,26 @@ export default function Home() {
           {selectedVolunteer ? (
             <div className="bg-white rounded-lg shadow-md">
               {/* Volunteer Header */}
-              <div className="p-6 border-b flex flex-col gap-4">
-                <div className="flex items-center md:hidden">
-                  <Button 
-                    variant="outline"
-                    size="sm"
-                    className="mr-2"
-                    onClick={() => {
-                      setSelectedVolunteer(null);
-                      setSidebarOpen(true);
-                    }}
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Back
-                  </Button>
+              <div className="p-6 border-b flex flex-wrap justify-between items-center gap-4">
+                <div>
+                  <h2 className="text-2xl font-medium text-text-primary">
+                    {selectedVolunteer.name}
+                  </h2>
+                  <p className="text-text-secondary mt-1">
+                    Total Hours: <span className="font-medium">{totalHours}</span> • 
+                    Events: <span className="font-medium">{events?.length || 0}</span>
+                  </p>
                 </div>
-                <div className="flex flex-wrap justify-between items-center">
-                  <div>
-                    <h2 className="text-2xl font-medium text-text-primary">
-                      {selectedVolunteer.name}
-                    </h2>
-                    <p className="text-text-secondary mt-1">
-                      Total Hours: <span className="font-medium">{totalHours}</span> • 
-                      Events: <span className="font-medium">{events?.length || 0}</span>
-                    </p>
-                  </div>
-                  <Button
-                    onClick={() => {
-                      setEventToEdit(null);
-                      setIsAddEventModalOpen(true);
-                    }}
-                    className="bg-primary hover:bg-primary/90"
-                  >
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Add Event
-                  </Button>
-                </div>
+                <Button
+                  onClick={() => {
+                    setEventToEdit(null);
+                    setIsAddEventModalOpen(true);
+                  }}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Add Event
+                </Button>
               </div>
 
               {/* Events Table */}
