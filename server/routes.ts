@@ -287,7 +287,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const volunteers = await storage.getVolunteers();
       const events = await storage.getEvents();
       
-      const result = await syncToGoogleSheets(sheetId, serviceAccount, volunteers, events);
+      const result = await syncToGoogleSheets(sheetId, serviceAccount, volunteers, events, storage);
       
       res.json(result);
     } catch (err) {

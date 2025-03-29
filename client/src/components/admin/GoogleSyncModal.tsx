@@ -45,7 +45,19 @@ export default function GoogleSyncModal({
   
   const syncWithGoogleSheets = async () => {
     try {
-      await apiRequest('POST', '/api/admin/sync-sheets', { password });
+      const response = await fetch('/api/admin/sync-sheets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': password
+        }
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to sync with Google Sheets');
+      }
+      
       setProgress(100);
       setStatus('success');
     } catch (error) {

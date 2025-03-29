@@ -43,8 +43,21 @@ export default function AdminPanel({
   
   // Fetch Google Sheets configuration
   const { data: sheetsConfig, isLoading } = useQuery<GoogleSheetsConfig>({
-    queryKey: ['/api/admin/sheets-config', { password }],
-    enabled: isOpen && !!password
+    queryKey: ['/api/admin/sheets-config'],
+    enabled: isOpen && !!password,
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/sheets-config?password=${encodeURIComponent(password)}`, {
+        headers: {
+          'X-Admin-Password': password
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch Google Sheets configuration');
+      }
+      
+      return response.json();
+    }
   });
   
   // Set Google Sheets config when data is loaded
@@ -70,11 +83,22 @@ export default function AdminPanel({
       const passwordData = {
         currentPassword,
         newPassword,
-        confirmPassword,
-        password
+        confirmPassword
       };
       
-      await apiRequest('POST', '/api/admin/password', passwordData);
+      const response = await fetch('/api/admin/password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Admin-Password': password
+        },
+        body: JSON.stringify(passwordData)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to change password');
+      }
       
       toast({
         title: "Success",
@@ -104,13 +128,27 @@ export default function AdminPanel({
     setIsSheetsSubmitting(true);
     
     try {
+      // Use a header for admin authentication
       const config = {
         sheetId: sheetId.trim(),
-        serviceAccount: serviceAccount.trim(),
-        password
+        serviceAccount: serviceAccount.trim()
       };
       
-      await apiRequest('POST', '/api/admin/sheets-config', config);
+      const headers = {
+        'Content-Type': 'application/json',
+        'X-Admin-Password': password
+      };
+      
+      const response = await fetch('/api/admin/sheets-config', {
+        method: 'POST',
+        headers: headers,
+        body: JSON.stringify(config)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save configuration');
+      }
       
       toast({
         title: "Success",
