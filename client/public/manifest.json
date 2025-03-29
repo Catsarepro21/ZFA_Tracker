@@ -1,21 +1,43 @@
 {
   "name": "Volunteer Tracker",
-  "short_name": "Volunteers",
+  "short_name": "VolTrack",
   "description": "Track volunteer hours and events",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#3f51b5",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233f51b5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E",
+      "src": "/icons/icon-192x192.svg",
+      "type": "image/svg+xml",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "purpose": "any"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233f51b5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E",
+      "src": "/icons/icon-512x512.svg",
+      "type": "image/svg+xml",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/maskable_icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Add Volunteer",
+      "description": "Add a new volunteer",
+      "url": "/?action=add-volunteer"
+    },
+    {
+      "name": "Add Event",
+      "description": "Add a new event",
+      "url": "/?action=add-event"
     }
   ]
 }

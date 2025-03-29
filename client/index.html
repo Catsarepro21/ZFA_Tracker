@@ -6,13 +6,19 @@
     <title>Volunteer Tracker</title>
     <meta name="description" content="Track volunteer hours and events" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233f51b5' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6L9 17l-5-5'/%3E%3C/svg%3E" />
+    <link rel="icon" type="image/svg+xml" href="/icons/icon-192x192.svg" />
     
     <!-- PWA metadata -->
-    <meta name="theme-color" content="#3f51b5" />
+    <meta name="theme-color" content="#3b82f6" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Volunteer Tracker" />
+    
+    <!-- Apple touch icons -->
+    <link rel="apple-touch-icon" href="/icons/icon-192x192.svg" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-192x192.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/icons/icon-192x192.svg" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/icons/icon-192x192.svg" />
     
     <!-- Font preload -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -23,19 +29,6 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <script>
-      // Register service worker for PWA support
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(registration => {
-              console.log('ServiceWorker registration successful');
-            })
-            .catch(error => {
-              console.error('ServiceWorker registration failed:', error);
-            });
-        });
-      }
-    </script>
+    <!-- Service worker registration is now handled in main.tsx -->
   </body>
 </html>

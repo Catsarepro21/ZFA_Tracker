@@ -61,6 +61,16 @@ function checkAdminPassword(req: Request, res: Response, next: Function) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Simple ping endpoint for PWA network connectivity check
+  app.head('/api/ping', (_, res) => {
+    res.sendStatus(200);
+  });
+  
+  // GET version of ping for service worker
+  app.get('/api/ping', (_, res) => {
+    res.json({ online: true, timestamp: Date.now() });
+  });
+  
   // API Routes
   
   // Volunteers
