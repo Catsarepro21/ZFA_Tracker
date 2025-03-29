@@ -32,28 +32,11 @@ export function useVolunteers() {
     await createMutation.mutateAsync({ name });
   };
   
-  const updateMutation = useMutation({
-    mutationFn: async ({ id, data }: { id: number, data: Partial<InsertVolunteer> }) => {
-      const response = await apiRequest('PATCH', `/api/volunteers/${id}`, data);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/volunteers'] });
-    }
-  });
-  
-  const updateVolunteerGoal = async (id: number, hourGoal: string) => {
-    await updateMutation.mutateAsync({ id, data: { hourGoal } });
-    // Also invalidate volunteer details if they're loaded
-    queryClient.invalidateQueries({ queryKey: [`/api/volunteers/${id}`] });
-  };
-  
   return {
     volunteers,
     isLoading,
     error,
     addVolunteer,
-    updateVolunteerGoal,
     refetch
   };
 }

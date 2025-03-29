@@ -7,7 +7,6 @@ import AdminModal from "@/components/admin/AdminModal";
 import AdminPanel from "@/components/admin/AdminPanel";
 import GoogleSyncModal from "@/components/admin/GoogleSyncModal";
 import DeleteConfirmModal from "@/components/admin/DeleteConfirmModal";
-import GoalProgressBar from "@/components/volunteer/GoalProgressBar";
 import { useVolunteers } from "@/hooks/useVolunteers";
 import { useEvents } from "@/hooks/useEvents";
 import { useAdmin } from "@/hooks/useAdmin";
@@ -31,15 +30,9 @@ export default function Home() {
 
   const isMobile = useIsMobile();
   const { isAdmin, verifyAdmin, logout } = useAdmin();
-  const { 
-    volunteers, 
-    isLoading: volunteersLoading, 
-    refetch: refetchVolunteers,
-    updateVolunteerGoal
-  } = useVolunteers();
+  const { volunteers, isLoading: volunteersLoading, refetch: refetchVolunteers } = useVolunteers();
   const { 
     events, 
-    stats,
     isLoading: eventsLoading, 
     refetch: refetchEvents,
     addEvent,
@@ -190,17 +183,6 @@ export default function Home() {
                     Add Event
                   </Button>
                 </div>
-                
-                {/* Goal Progress Bar */}
-                {stats && (
-                  <GoalProgressBar
-                    totalHours={stats.totalHours}
-                    hourGoal={stats.hourGoal}
-                    progressPercentage={stats.progressPercentage}
-                    onUpdateGoal={(hourGoal) => updateVolunteerGoal(selectedVolunteer.id, hourGoal)}
-                    isAdmin={isAdmin}
-                  />
-                )}
               </div>
 
               {/* Events Table */}
@@ -213,39 +195,19 @@ export default function Home() {
               />
             </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full p-6 md:p-8">
+            <div className="flex flex-col items-center justify-center h-full p-8">
               <User className="h-16 w-16 text-primary/30 mb-4" />
               <h2 className="text-xl font-medium mb-2">No Volunteer Selected</h2>
-              <p className="text-text-secondary mb-4 text-center max-w-md">
-                {isMobile ? (
-                  <>
-                    Tap the menu button <Menu className="inline-block h-4 w-4 align-text-bottom" /> in the top left to view volunteers, or add a new volunteer below.
-                  </>
-                ) : (
-                  <>
-                    Select a volunteer from the sidebar or add a new volunteer to get started.
-                  </>
-                )}
+              <p className="text-text-secondary mb-4 text-center">
+                Select a volunteer from the sidebar or add a new volunteer to get started.
               </p>
-              <div className="flex flex-col sm:flex-row gap-3">
-                {isMobile && (
-                  <Button 
-                    variant="outline"
-                    onClick={() => setSidebarOpen(true)}
-                    className="flex-1"
-                  >
-                    <Menu className="mr-2 h-4 w-4" />
-                    View Volunteers
-                  </Button>
-                )}
-                <Button 
-                  onClick={() => setIsAddVolunteerModalOpen(true)}
-                  className="bg-primary hover:bg-primary/90 flex-1"
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Add Volunteer
-                </Button>
-              </div>
+              <Button 
+                onClick={() => setIsAddVolunteerModalOpen(true)}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Add Volunteer
+              </Button>
             </div>
           )}
         </main>
@@ -256,17 +218,8 @@ export default function Home() {
         isOpen={isAddVolunteerModalOpen}
         onClose={() => setIsAddVolunteerModalOpen(false)}
         onAddVolunteer={async (name) => {
-          // Refetch the volunteers list after adding
-          const result = await refetchVolunteers();
+          await refetchVolunteers();
           setIsAddVolunteerModalOpen(false);
-          
-          // Set the newly added volunteer as selected
-          if (result.data && result.data.length > 0) {
-            const newVolunteer = result.data.find(v => v.name === name);
-            if (newVolunteer) {
-              setSelectedVolunteer(newVolunteer);
-            }
-          }
         }}
       />
 

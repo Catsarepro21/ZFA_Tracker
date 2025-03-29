@@ -60,18 +60,11 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
-  
-  // Determine which host to use
-  // In a downloaded environment, 0.0.0.0 might cause issues, so we allow it to be overridden
-  const useLocalhost = process.env.USE_LOCALHOST === 'true';
-  const host = useLocalhost ? 'localhost' : '0.0.0.0';
-  
-  // Set reusePort to false when running locally to prevent issues on some platforms
   server.listen({
     port,
-    host: host,
-    reusePort: !useLocalhost,
+    host: "0.0.0.0",
+    reusePort: true,
   }, () => {
-    log(`serving on port ${port} with host ${host}`);
+    log(`serving on port ${port}`);
   });
 })();

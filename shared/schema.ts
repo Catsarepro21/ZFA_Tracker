@@ -12,7 +12,6 @@ export const volunteers = pgTable("volunteers", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email"),
-  hourGoal: text("hour_goal"), // stored as "HH:MM" format
 });
 
 export const events = pgTable("events", {
@@ -34,14 +33,12 @@ export const settings = pgTable("settings", {
 export const insertVolunteerSchema = createInsertSchema(volunteers).pick({
   name: true,
   email: true,
-  hourGoal: true,
 });
 
 export const volunteerSchema = z.object({
   id: z.number(),
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Invalid email address").optional().nullable(),
-  hourGoal: z.string().regex(/^([0-9]+):([0-5][0-9])$/, "Hours must be in HH:MM format").optional().nullable(),
 });
 
 // Event schemas

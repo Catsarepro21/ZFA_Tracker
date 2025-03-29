@@ -61,16 +61,6 @@ function checkAdminPassword(req: Request, res: Response, next: Function) {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Simple ping endpoint for PWA network connectivity check
-  app.head('/api/ping', (_, res) => {
-    res.sendStatus(200);
-  });
-  
-  // GET version of ping for service worker
-  app.get('/api/ping', (_, res) => {
-    res.json({ online: true, timestamp: Date.now() });
-  });
-  
   // API Routes
   
   // Volunteers
@@ -106,26 +96,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  app.patch('/api/volunteers/:id', async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ message: 'Invalid volunteer ID' });
-      }
-      
-      const volunteerData = insertVolunteerSchema.partial().parse(req.body);
-      const volunteer = await storage.updateVolunteer(id, volunteerData);
-      
-      if (!volunteer) {
-        return res.status(404).json({ message: 'Volunteer not found' });
-      }
-      
-      res.json(volunteer);
-    } catch (err) {
-      handleValidationError(err, res);
-    }
-  });
-  
   app.get('/api/volunteers/:id', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -156,25 +126,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const formattedTotalHours = `${totalHours}:${totalMinutes.toString().padStart(2, '0')}`;
       
-      // Calculate progress percentage if goal exists
-      let progressPercentage = 0;
-      
-      if (volunteer.hourGoal) {
-        const [goalHours, goalMinutes] = volunteer.hourGoal.split(':').map(Number);
-        const goalTotalMinutes = (goalHours * 60) + goalMinutes;
-        const achievedTotalMinutes = (totalHours * 60) + totalMinutes;
-        
-        progressPercentage = Math.min(100, Math.round((achievedTotalMinutes / goalTotalMinutes) * 100));
-      }
-      
       res.json({
         volunteer,
         events,
         stats: {
           totalEvents: events.length,
-          totalHours: formattedTotalHours,
-          progressPercentage,
-          hourGoal: volunteer.hourGoal || null
+          totalHours: formattedTotalHours
         }
       });
     } catch (err) {
