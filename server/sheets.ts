@@ -40,7 +40,7 @@ export async function syncToGoogleSheets(
     const sortedVolunteers = [...volunteers].sort((a, b) => a.name.localeCompare(b.name));
     
     const volunteersData = [
-      ['Volunteer ID', 'Name', 'Total Events', 'Total Hours'],
+      ['Volunteer ID', 'Name', 'Email', 'Total Events', 'Total Hours'],
       ...await Promise.all(sortedVolunteers.map(async volunteer => {
         const volunteerEvents = events.filter(e => e.volunteerId === volunteer.id);
         
@@ -62,6 +62,7 @@ export async function syncToGoogleSheets(
         return [
           volunteer.id.toString(),
           volunteer.name,
+          volunteer.email || "Not Given",
           volunteerEvents.length.toString(),
           totalHoursFormatted
         ];
@@ -194,7 +195,7 @@ async function syncFromGoogleSheets(
     // 1. First, get the Volunteers sheet
     const volunteersResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: sheetId,
-      range: 'Volunteers!A2:B100', // Start from row 2 to skip headers, up to 100 volunteers
+      range: 'Volunteers!A2:C100', // Start from row 2 to skip headers, up to 100 volunteers (including email column)
     });
     
     const volunteersRows = volunteersResponse.data.values || [];
@@ -206,6 +207,7 @@ async function syncFromGoogleSheets(
       
       const sheetVolunteerId = parseInt(row[0]);
       const name = row[1];
+      const email = row.length > 2 ? row[2] : null; // Get email if it exists
       
       // Skip if the volunteer already exists with this ID
       if (!isNaN(sheetVolunteerId) && existingVolunteers.some(v => v.id === sheetVolunteerId)) {
@@ -221,7 +223,7 @@ async function syncFromGoogleSheets(
           // Add as a new volunteer
           const volunteer: InsertVolunteer = {
             name: name,
-            email: null // Email is optional
+            email: email && email !== "Not Given" ? email : null // Use email if available and not "Not Given"
           };
           
           await storage.createVolunteer(volunteer);
