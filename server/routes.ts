@@ -22,7 +22,8 @@ function handleValidationError(err: unknown, res: Response) {
 
 // Authentication middleware
 function checkAdminPassword(req: Request, res: Response, next: Function) {
-  const { password } = req.body;
+  // Check for password in request body, query parameters, or headers
+  const password = req.body.password || req.query.password || req.headers['x-admin-password'];
   
   if (!password) {
     return res.status(401).json({ message: 'Password is required' });
