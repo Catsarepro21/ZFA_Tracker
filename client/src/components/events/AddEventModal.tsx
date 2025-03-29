@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,7 @@ import { Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getCurrentDate, isValidHoursFormat } from "@/lib/utils";
 import { Event } from "@shared/schema";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface AddEventModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ export default function AddEventModal({
   const [date, setDate] = useState(getCurrentDate());
   const [isSubmitting, setIsSubmitting] = useState(false);
   
+  const isMobile = useIsMobile();
   const { toast } = useToast();
 
   // Reset form when modal opens or selected event changes
@@ -107,12 +109,17 @@ export default function AddEventModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
+      <DialogContent className={`sm:max-w-md ${isMobile ? 'p-4 sm:p-6' : ''}`}>
+        <DialogHeader className={isMobile ? 'pb-2' : ''}>
           <DialogTitle>{event ? "Edit Event" : "Add New Event"}</DialogTitle>
+          {isMobile && (
+            <DialogDescription className="text-xs">
+              Record volunteer hours for tracking and reporting.
+            </DialogDescription>
+          )}
         </DialogHeader>
         
-        <form onSubmit={handleSubmit} className="space-y-4 py-4">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4 py-2 sm:py-4">
           <div className="space-y-2">
             <Label htmlFor="event-name">Event Name</Label>
             <Input
@@ -174,21 +181,44 @@ export default function AddEventModal({
             Use Current Date
           </Button>
           
-          <DialogFooter className="pt-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onClose}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button 
-              type="submit"
-              disabled={isSubmitting}
-            >
-              {event ? "Update Event" : "Save Event"}
-            </Button>
+          <DialogFooter className={`pt-2 sm:pt-4 ${isMobile ? 'flex-col gap-2 sm:flex-row' : ''}`}>
+            {isMobile ? (
+              <>
+                <Button 
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full"
+                >
+                  {event ? "Update Event" : "Save Event"}
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                  className="w-full"
+                >
+                  Cancel
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit"
+                  disabled={isSubmitting}
+                >
+                  {event ? "Update Event" : "Save Event"}
+                </Button>
+              </>
+            )}
           </DialogFooter>
         </form>
       </DialogContent>

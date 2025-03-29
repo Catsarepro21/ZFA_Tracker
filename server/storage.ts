@@ -15,6 +15,7 @@ export interface IStorage {
   getVolunteers(): Promise<Volunteer[]>;
   getVolunteer(id: number): Promise<Volunteer | undefined>;
   createVolunteer(volunteer: InsertVolunteer): Promise<Volunteer>;
+  updateVolunteer(id: number, volunteer: Partial<InsertVolunteer>): Promise<Volunteer | undefined>;
   
   // Event methods
   getEvents(): Promise<Event[]>;
@@ -85,6 +86,18 @@ export class MemStorage implements IStorage {
     const volunteer: Volunteer = { ...insertVolunteer, id };
     this.volunteers.set(id, volunteer);
     return volunteer;
+  }
+  
+  async updateVolunteer(id: number, volunteerUpdate: Partial<InsertVolunteer>): Promise<Volunteer | undefined> {
+    const existingVolunteer = this.volunteers.get(id);
+    
+    if (!existingVolunteer) {
+      return undefined;
+    }
+    
+    const updatedVolunteer: Volunteer = { ...existingVolunteer, ...volunteerUpdate };
+    this.volunteers.set(id, updatedVolunteer);
+    return updatedVolunteer;
   }
   
   // Event methods

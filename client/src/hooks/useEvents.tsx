@@ -6,11 +6,15 @@ interface VolunteerDetails {
   volunteer: {
     id: number;
     name: string;
+    email?: string | null;
+    hourGoal?: string | null;
   };
   events: Event[];
   stats: {
     totalEvents: number;
     totalHours: string;
+    progressPercentage: number;
+    hourGoal: string | null;
   };
 }
 
