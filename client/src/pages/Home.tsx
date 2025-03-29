@@ -134,7 +134,7 @@ export default function Home() {
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
         <VolunteerSidebar
-          volunteers={(volunteers || []).sort((a, b) => a.name.localeCompare(b.name))}
+          volunteers={volunteers || []}
           selectedVolunteer={selectedVolunteer}
           onSelectVolunteer={setSelectedVolunteer}
           onAddVolunteer={() => setIsAddVolunteerModalOpen(true)}
@@ -213,7 +213,15 @@ export default function Home() {
           setIsAddEventModalOpen(false);
           setEventToEdit(null);
         }}
-        onSave={eventToEdit ? handleEditEvent : handleAddEvent}
+        onSave={async (eventData) => {
+          if ('id' in eventData) {
+            // This is an edit
+            return handleEditEvent(eventData as Event);
+          } else {
+            // This is a new event
+            return handleAddEvent(eventData);
+          }
+        }}
         event={eventToEdit}
       />
 

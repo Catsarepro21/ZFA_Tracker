@@ -79,7 +79,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         })
       );
       
-      res.json(volunteersWithCount);
+      // Sort volunteers alphabetically by name
+      const sortedVolunteers = volunteersWithCount.sort((a, b) => 
+        a.name.localeCompare(b.name)
+      );
+      
+      res.json(sortedVolunteers);
     } catch (err) {
       console.error('Error getting volunteers:', err);
       res.status(500).json({ message: 'Internal server error' });
@@ -110,11 +115,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const events = await storage.getEventsByVolunteerId(id);
       
+      // Sort events by date (newest first)
+      const sortedEvents = [...events].sort((a, b) => 
+        b.date.localeCompare(a.date)
+      );
+      
       // Calculate total hours
       let totalHours = 0;
       let totalMinutes = 0;
       
-      events.forEach(event => {
+      sortedEvents.forEach(event => {
         const [hours, minutes] = event.hours.split(':').map(Number);
         totalHours += hours;
         totalMinutes += minutes;
@@ -128,9 +138,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         volunteer,
-        events,
+        events: sortedEvents,
         stats: {
-          totalEvents: events.length,
+          totalEvents: sortedEvents.length,
           totalHours: formattedTotalHours
         }
       });
@@ -265,12 +275,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const volunteers = await storage.getVolunteers();
       const allEvents = await storage.getEvents();
       
+      // Sort volunteers alphabetically by name
+      const sortedVolunteers = [...volunteers].sort((a, b) => 
+        a.name.localeCompare(b.name)
+      );
+      
       // Format: "id,name,event,location,hours,date"
       let csv = 'volunteer_id,volunteer_name,event,location,hours,date\n';
       
-      for (const event of allEvents) {
-        const volunteer = volunteers.find(v => v.id === event.volunteerId);
-        if (volunteer) {
+      // For each volunteer (in alphabetical order)
+      for (const volunteer of sortedVolunteers) {
+        // Get all events for this volunteer
+        const volunteerEvents = allEvents.filter(e => e.volunteerId === volunteer.id);
+        
+        // Sort events by date (newest first)
+        const sortedEvents = [...volunteerEvents].sort((a, b) => 
+          b.date.localeCompare(a.date)
+        );
+        
+        // Add each event to the CSV
+        for (const event of sortedEvents) {
           csv += `${volunteer.id},${volunteer.name},${event.event},${event.location},${event.hours},${event.date}\n`;
         }
       }
@@ -296,7 +320,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const volunteers = await storage.getVolunteers();
       const events = await storage.getEvents();
       
-      const result = await syncToGoogleSheets(sheetId, serviceAccount, volunteers, events, storage);
+      // Sort volunteers alphabetically
+      const sortedVolunteers = [...volunteers].sort((a, b) => 
+        a.name.localeCompare(b.name)
+      );
+      
+      const result = await syncToGoogleSheets(sheetId, serviceAccount, sortedVolunteers, events, storage);
       
       res.json(result);
     } catch (err) {
