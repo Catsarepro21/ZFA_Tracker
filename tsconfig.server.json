@@ -6,7 +6,10 @@
     "esModuleInterop": true,
     "outDir": "dist/server",
     "strict": true,
-    "skipLibCheck": true
+    "skipLibCheck": true,
+    "paths": {
+      "@shared/*": ["./shared/*"]
+    }
   },
   "include": ["server/**/*", "shared/**/*"]
 }
