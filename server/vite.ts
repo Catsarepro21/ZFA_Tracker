@@ -1,6 +1,5 @@
 // server/vite.ts
 import express from 'express';
-import path from 'path';
 import { Server } from 'http';
 
 export function log(message: string, source = "express") {
@@ -17,6 +16,13 @@ export function serveStatic(app: any) {
   app.use(express.static("dist/client"));
   app.get("*", (req: any, res: any) => {
     if (req.path.startsWith('/api')) return; // Let API routes handle themselves
-    res.sendFile(path.resolve("dist/client/index.html"));
+    
+    // Import path dynamically to avoid conflicts
+    import('path').then(pathModule => {
+      res.sendFile(pathModule.resolve("dist/client/index.html"));
+    }).catch(err => {
+      console.error("Error loading path module:", err);
+      res.status(500).send("Server error");
+    });
   });
 }
