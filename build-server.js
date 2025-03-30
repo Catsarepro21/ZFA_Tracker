@@ -10,8 +10,8 @@ try {
   if (fs.existsSync(path.join(__dirname, 'client'))) {
     console.log("Building client...");
     try {
-      // Build the client using Vite
-      execSync('cd client && vite build', { stdio: 'inherit' });
+      // Build the client using npx to ensure vite is found
+      execSync('cd client && npx vite build', { stdio: 'inherit' });
       console.log("Client build successful!");
     } catch (error) {
       console.error("Client build failed:", error);
@@ -22,8 +22,8 @@ try {
   }
 
   console.log("Building server...");
-  // Then build the server using tsc instead of esbuild
-  execSync('tsc -p tsconfig.server.json', { stdio: 'inherit' });
+  // Then build the server using npx for tsc as well
+  execSync('npx tsc -p tsconfig.server.json', { stdio: 'inherit' });
   console.log("Server build completed successfully!");
 } catch (error) {
   console.error("Server build failed:", error);
