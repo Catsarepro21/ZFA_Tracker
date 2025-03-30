@@ -1,358 +1,314 @@
-import type { Express, Request, Response } from "express";
-import { createServer, type Server } from "http";
-import { storage } from "./storage";
-import { ZodError } from "zod";
-import { fromZodError } from "zod-validation-error";
-import { 
-  insertVolunteerSchema, 
-  insertEventSchema, 
+// server/routes.ts
+import express, { Express, Request, Response, NextFunction } from 'express';
+import { Server } from 'http';
+import passport from 'passport';
+import { Strategy as LocalStrategy } from 'passport-local';
+import session from 'express-session';
+import cors from 'cors';
+import MemoryStore from 'memorystore';
+import { z } from 'zod';
+import { ZodError } from 'zod-validation-error';
+import { storage, IStorage } from './storage';
+import {
+  Event,
+  Volunteer,
+  insertEventSchema,
+  insertVolunteerSchema,
   googleSheetsConfigSchema,
   passwordChangeSchema
-} from "@shared/schema";
-import { syncToGoogleSheets } from "./sheets";
+} from '../shared/schema';
+import { syncToGoogleSheets } from './sheets';
 
-// Utility function to handle validation errors
 function handleValidationError(err: unknown, res: Response) {
   if (err instanceof ZodError) {
-    const validationError = fromZodError(err);
-    return res.status(400).json({ message: validationError.message });
+    return res.status(400).json({ error: err.message });
   }
-  return res.status(500).json({ message: 'Internal server error' });
+  console.error('Unexpected error:', err);
+  return res.status(500).json({ error: 'Internal server error' });
 }
 
-// Authentication middleware
 function checkAdminPassword(req: Request, res: Response, next: Function) {
-  // Check for password in request body, query parameters, or headers (case insensitive)
-  const password = req.body.password || 
-                  req.query.password || 
-                  req.headers['x-admin-password'] || 
-                  req.headers['x-ADMIN-PASSWORD'] || 
-                  req.headers['X-ADMIN-PASSWORD'] ||
-                  req.headers['X-Admin-Password'];
-  
-  console.log('Auth check - Method:', req.method);
-  console.log('Auth check - URL:', req.url);
-  console.log('Auth check - Body:', JSON.stringify(req.body));
-  console.log('Auth check - Query:', JSON.stringify(req.query));
-  
-  // Log headers with all possible case variations
-  console.log('Auth check - Header x-admin-password:', req.headers['x-admin-password']);
-  console.log('Auth check - Header X-ADMIN-PASSWORD:', req.headers['X-ADMIN-PASSWORD']);
-  console.log('Auth check - Header X-Admin-Password:', req.headers['X-Admin-Password']);
-  console.log('Auth check - Password received:', password);
-  
-  if (!password) {
-    return res.status(401).json({ message: 'Password is required' });
+  if (req.isAuthenticated()) {
+    return next();
   }
-  
-  storage.getSetting('adminPassword').then(storedPassword => {
-    console.log('Auth check - Stored password exists:', !!storedPassword);
-    if (password === storedPassword) {
-      console.log('Auth check - Password match: PASS');
-      next();
-    } else {
-      console.log('Auth check - Password match: FAIL');
-      res.status(401).json({ message: 'Invalid password' });
-    }
-  }).catch(err => {
-    console.error('Error checking password:', err);
-    res.status(500).json({ message: 'Internal server error' });
-  });
+  return res.status(401).json({ error: 'Unauthorized' });
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // API Routes
-  
-  // Volunteers
-  app.get('/api/volunteers', async (req, res) => {
+  // Enable CORS for all routes
+  app.use(cors({
+    origin: '*', // You should restrict this to your frontend domain in production
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization']
+  }));
+
+  // Initialize session middleware
+  const SessionStore = MemoryStore(session);
+  app.use(session({
+    secret: process.env.SESSION_SECRET || 'development-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    },
+    store: new SessionStore({
+      checkPeriod: 86400000 // 24 hours
+    })
+  }));
+
+  // Initialize passport
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // Configure local strategy for authentication
+  passport.use(new LocalStrategy(async (username, password, done) => {
     try {
-      const volunteers = await storage.getVolunteers();
-      
-      // For each volunteer, get the event count
-      const volunteersWithCount = await Promise.all(
-        volunteers.map(async (volunteer) => {
-          const events = await storage.getEventsByVolunteerId(volunteer.id);
-          return {
-            ...volunteer,
-            eventCount: events.length
-          };
-        })
-      );
-      
-      // Sort volunteers alphabetically by name
-      const sortedVolunteers = volunteersWithCount.sort((a, b) => 
-        a.name.localeCompare(b.name)
-      );
-      
-      res.json(sortedVolunteers);
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return done(null, false, { message: 'Invalid credentials' });
+      }
+      if (password !== user.password) { // In a real app, use proper password hashing
+        return done(null, false, { message: 'Invalid credentials' });
+      }
+      return done(null, user);
     } catch (err) {
-      console.error('Error getting volunteers:', err);
-      res.status(500).json({ message: 'Internal server error' });
+      return done(err);
     }
+  }));
+
+  passport.serializeUser((user: any, done) => {
+    done(null, user.id);
   });
-  
-  app.post('/api/volunteers', async (req, res) => {
+
+  passport.deserializeUser(async (id: number, done) => {
     try {
-      const volunteerData = insertVolunteerSchema.parse(req.body);
-      const volunteer = await storage.createVolunteer(volunteerData);
-      res.status(201).json(volunteer);
+      const user = await storage.getUser(id);
+      done(null, user);
     } catch (err) {
-      handleValidationError(err, res);
-    }
-  });
-  
-  app.get('/api/volunteers/:id', async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ message: 'Invalid volunteer ID' });
-      }
-      
-      const volunteer = await storage.getVolunteer(id);
-      if (!volunteer) {
-        return res.status(404).json({ message: 'Volunteer not found' });
-      }
-      
-      const events = await storage.getEventsByVolunteerId(id);
-      
-      // Sort events by date (newest first)
-      const sortedEvents = [...events].sort((a, b) => 
-        b.date.localeCompare(a.date)
-      );
-      
-      // Calculate total hours
-      let totalHours = 0;
-      let totalMinutes = 0;
-      
-      sortedEvents.forEach(event => {
-        const [hours, minutes] = event.hours.split(':').map(Number);
-        totalHours += hours;
-        totalMinutes += minutes;
-      });
-      
-      // Convert excess minutes to hours
-      totalHours += Math.floor(totalMinutes / 60);
-      totalMinutes = totalMinutes % 60;
-      
-      const formattedTotalHours = `${totalHours}:${totalMinutes.toString().padStart(2, '0')}`;
-      
-      res.json({
-        volunteer,
-        events: sortedEvents,
-        stats: {
-          totalEvents: sortedEvents.length,
-          totalHours: formattedTotalHours
-        }
-      });
-    } catch (err) {
-      console.error('Error getting volunteer:', err);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-  
-  // Events
-  app.post('/api/events', async (req, res) => {
-    try {
-      const eventData = insertEventSchema.parse(req.body);
-      const event = await storage.createEvent(eventData);
-      res.status(201).json(event);
-    } catch (err) {
-      handleValidationError(err, res);
-    }
-  });
-  
-  app.put('/api/events/:id', async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ message: 'Invalid event ID' });
-      }
-      
-      // Only validate the fields that are provided
-      const eventUpdate = req.body;
-      const event = await storage.updateEvent(id, eventUpdate);
-      
-      if (!event) {
-        return res.status(404).json({ message: 'Event not found' });
-      }
-      
-      res.json(event);
-    } catch (err) {
-      handleValidationError(err, res);
-    }
-  });
-  
-  app.delete('/api/events/:id', checkAdminPassword, async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ message: 'Invalid event ID' });
-      }
-      
-      const success = await storage.deleteEvent(id);
-      
-      if (!success) {
-        return res.status(404).json({ message: 'Event not found' });
-      }
-      
-      res.status(204).send();
-    } catch (err) {
-      console.error('Error deleting event:', err);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-  
-  // Admin
-  app.post('/api/admin/verify', async (req, res) => {
-    try {
-      const { password } = req.body;
-      
-      if (!password) {
-        return res.status(400).json({ message: 'Password is required' });
-      }
-      
-      const storedPassword = await storage.getSetting('adminPassword');
-      
-      if (password === storedPassword) {
-        res.json({ success: true });
-      } else {
-        res.status(401).json({ message: 'Invalid password' });
-      }
-    } catch (err) {
-      console.error('Error verifying admin password:', err);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-  
-  app.post('/api/admin/password', checkAdminPassword, async (req, res) => {
-    try {
-      const passwordData = passwordChangeSchema.parse(req.body);
-      
-      const storedPassword = await storage.getSetting('adminPassword');
-      
-      if (passwordData.currentPassword !== storedPassword) {
-        return res.status(401).json({ message: 'Current password is incorrect' });
-      }
-      
-      await storage.updateSetting('adminPassword', passwordData.newPassword);
-      
-      res.json({ success: true });
-    } catch (err) {
-      handleValidationError(err, res);
-    }
-  });
-  
-  app.post('/api/admin/sheets-config', async (req, res) => {
-    try {
-      const config = googleSheetsConfigSchema.parse(req.body);
-      
-      await storage.updateSetting('googleSheetsId', config.sheetId);
-      await storage.updateSetting('googleServiceAccount', config.serviceAccount);
-      
-      // Handle auto-sync settings
-      if (config.autoSync !== undefined) {
-        await storage.updateSetting('googleSheetsAutoSync', config.autoSync.toString());
-      }
-      
-      if (config.lastSyncTimestamp !== undefined) {
-        await storage.updateSetting('googleSheetsLastSync', config.lastSyncTimestamp.toString());
-      }
-      
-      res.json({ success: true });
-    } catch (err) {
-      handleValidationError(err, res);
-    }
-  });
-  
-  app.get('/api/admin/sheets-config', async (req, res) => {
-    try {
-      const sheetId = await storage.getSetting('googleSheetsId') || '';
-      const serviceAccount = await storage.getSetting('googleServiceAccount') || '';
-      const autoSyncStr = await storage.getSetting('googleSheetsAutoSync') || 'false';
-      const lastSyncTimestampStr = await storage.getSetting('googleSheetsLastSync') || '0';
-      
-      const autoSync = autoSyncStr === 'true';
-      const lastSyncTimestamp = parseInt(lastSyncTimestampStr) || 0;
-      
-      res.json({
-        sheetId,
-        serviceAccount,
-        autoSync,
-        lastSyncTimestamp
-      });
-    } catch (err) {
-      console.error('Error getting Google Sheets config:', err);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-  
-  app.get('/api/admin/export-csv', async (req, res) => {
-    try {
-      const volunteers = await storage.getVolunteers();
-      const allEvents = await storage.getEvents();
-      
-      // Sort volunteers alphabetically by name
-      const sortedVolunteers = [...volunteers].sort((a, b) => 
-        a.name.localeCompare(b.name)
-      );
-      
-      // Format: "id,name,event,location,hours,date"
-      let csv = 'volunteer_id,volunteer_name,event,location,hours,date\n';
-      
-      // For each volunteer (in alphabetical order)
-      for (const volunteer of sortedVolunteers) {
-        // Get all events for this volunteer
-        const volunteerEvents = allEvents.filter(e => e.volunteerId === volunteer.id);
-        
-        // Sort events by date (newest first)
-        const sortedEvents = [...volunteerEvents].sort((a, b) => 
-          b.date.localeCompare(a.date)
-        );
-        
-        // Add each event to the CSV
-        for (const event of sortedEvents) {
-          csv += `${volunteer.id},${volunteer.name},${event.event},${event.location},${event.hours},${event.date}\n`;
-        }
-      }
-      
-      res.setHeader('Content-Type', 'text/csv');
-      res.setHeader('Content-Disposition', 'attachment; filename=volunteer_events.csv');
-      res.send(csv);
-    } catch (err) {
-      console.error('Error exporting CSV:', err);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-  
-  app.post('/api/admin/sync-sheets', async (req, res) => {
-    try {
-      const sheetId = await storage.getSetting('googleSheetsId');
-      const serviceAccount = await storage.getSetting('googleServiceAccount');
-      
-      if (!sheetId || !serviceAccount) {
-        return res.status(400).json({ message: 'Google Sheets configuration is missing' });
-      }
-      
-      const volunteers = await storage.getVolunteers();
-      const events = await storage.getEvents();
-      
-      // Sort volunteers alphabetically
-      const sortedVolunteers = [...volunteers].sort((a, b) => 
-        a.name.localeCompare(b.name)
-      );
-      
-      const result = await syncToGoogleSheets(sheetId, serviceAccount, sortedVolunteers, events, storage);
-      
-      res.json(result);
-    } catch (err) {
-      console.error('Error syncing with Google Sheets:', err);
-      res.status(500).json({ 
-        message: 'Error syncing with Google Sheets', 
-        error: err instanceof Error ? err.message : 'Unknown error'
-      });
+      done(err);
     }
   });
 
-  const httpServer = createServer(app);
-  return httpServer;
+  // Login route
+  app.post('/api/login', express.json(), (req, res, next) => {
+    passport.authenticate('local', (err: any, user: any, info: any) => {
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
+        return res.status(401).json({ error: info.message });
+      }
+      req.logIn(user, (err) => {
+        if (err) {
+          return next(err);
+        }
+        return res.status(200).json({ message: 'Login successful' });
+      });
+    })(req, res, next);
+  });
+
+  // Logout route
+  app.post('/api/logout', (req, res) => {
+    req.logout(() => {
+      res.status(200).json({ message: 'Logout successful' });
+    });
+  });
+
+  // Check auth status
+  app.get('/api/auth-status', (req, res) => {
+    if (req.isAuthenticated()) {
+      return res.status(200).json({ isAuthenticated: true });
+    }
+    return res.status(200).json({ isAuthenticated: false });
+  });
+
+  // Get all volunteers
+  app.get('/api/volunteers', async (req, res) => {
+    try {
+      const volunteers = await storage.getVolunteers();
+      // Sort volunteers alphabetically by name
+      volunteers.sort((a, b) => a.name.localeCompare(b.name));
+      res.status(200).json(volunteers);
+    } catch (err) {
+      console.error('Error fetching volunteers:', err);
+      res.status(500).json({ error: 'Failed to fetch volunteers' });
+    }
+  });
+
+  // Get volunteer by ID
+  app.get('/api/volunteers/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const volunteer = await storage.getVolunteer(id);
+      if (!volunteer) {
+        return res.status(404).json({ error: 'Volunteer not found' });
+      }
+      
+      const events = await storage.getEventsByVolunteerId(id);
+      // Sort events by date in descending order (newest first)
+      events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      // Calculate total hours
+      const totalHours = events.reduce((sum, event) => {
+        const hours = parseFloat(event.hours);
+        return sum + (isNaN(hours) ? 0 : hours);
+      }, 0);
+      
+      res.status(200).json({
+        volunteer,
+        events,
+        stats: {
+          totalEvents: events.length,
+          totalHours: totalHours.toFixed(1)
+        }
+      });
+    } catch (err) {
+      console.error('Error fetching volunteer:', err);
+      res.status(500).json({ error: 'Failed to fetch volunteer details' });
+    }
+  });
+
+  // Create volunteer
+  app.post('/api/volunteers', express.json(), async (req, res) => {
+    try {
+      const volunteerData = insertVolunteerSchema.parse(req.body);
+      const newVolunteer = await storage.createVolunteer(volunteerData);
+      res.status(201).json(newVolunteer);
+    } catch (err) {
+      handleValidationError(err, res);
+    }
+  });
+
+  // Get all events
+  app.get('/api/events', async (req, res) => {
+    try {
+      const events = await storage.getEvents();
+      // Sort events by date in descending order (newest first)
+      events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      res.status(200).json(events);
+    } catch (err) {
+      console.error('Error fetching events:', err);
+      res.status(500).json({ error: 'Failed to fetch events' });
+    }
+  });
+
+  // Create event
+  app.post('/api/events', express.json(), async (req, res) => {
+    try {
+      const eventData = insertEventSchema.parse(req.body);
+      const newEvent = await storage.createEvent(eventData);
+      res.status(201).json(newEvent);
+    } catch (err) {
+      handleValidationError(err, res);
+    }
+  });
+
+  // Update event
+  app.put('/api/events/:id', express.json(), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const eventData = insertEventSchema.parse(req.body);
+      const updatedEvent = await storage.updateEvent(id, eventData);
+      if (!updatedEvent) {
+        return res.status(404).json({ error: 'Event not found' });
+      }
+      res.status(200).json(updatedEvent);
+    } catch (err) {
+      handleValidationError(err, res);
+    }
+  });
+
+  // Delete event
+  app.delete('/api/events/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id, 10);
+      const deleted = await storage.deleteEvent(id);
+      if (!deleted) {
+        return res.status(404).json({ error: 'Event not found' });
+      }
+      res.status(200).json({ message: 'Event deleted successfully' });
+    } catch (err) {
+      console.error('Error deleting event:', err);
+      res.status(500).json({ error: 'Failed to delete event' });
+    }
+  });
+
+  // Google Sheets sync
+  app.post('/api/sync/google-sheets', express.json(), checkAdminPassword, async (req, res) => {
+    try {
+      const config = googleSheetsConfigSchema.parse(req.body);
+      await syncToGoogleSheets(config, storage);
+      
+      // Update last sync timestamp
+      const now = new Date().toISOString();
+      await storage.updateSetting('lastSyncTime', now);
+      
+      res.status(200).json({ message: 'Sync successful', timestamp: now });
+    } catch (err) {
+      console.error('Error syncing with Google Sheets:', err);
+      if (err instanceof Error) {
+        return res.status(500).json({ error: err.message });
+      }
+      return res.status(500).json({ error: 'Failed to sync with Google Sheets' });
+    }
+  });
+
+  // Get sync status
+  app.get('/api/sync/status', async (req, res) => {
+    try {
+      const lastSyncTime = await storage.getSetting('lastSyncTime');
+      const autoSyncEnabled = await storage.getSetting('autoSyncEnabled');
+      
+      res.status(200).json({
+        lastSyncTime: lastSyncTime || null,
+        autoSyncEnabled: autoSyncEnabled === 'true'
+      });
+    } catch (err) {
+      console.error('Error fetching sync status:', err);
+      res.status(500).json({ error: 'Failed to fetch sync status' });
+    }
+  });
+
+  // Toggle auto-sync
+  app.post('/api/sync/auto-toggle', express.json(), checkAdminPassword, async (req, res) => {
+    try {
+      const { enabled } = req.body;
+      await storage.updateSetting('autoSyncEnabled', enabled ? 'true' : 'false');
+      
+      res.status(200).json({ 
+        message: `Auto-sync ${enabled ? 'enabled' : 'disabled'}`,
+        autoSyncEnabled: enabled
+      });
+    } catch (err) {
+      console.error('Error toggling auto-sync:', err);
+      res.status(500).json({ error: 'Failed to toggle auto-sync' });
+    }
+  });
+
+  // Change admin password
+  app.post('/api/admin/change-password', express.json(), checkAdminPassword, async (req, res) => {
+    try {
+      const passwordData = passwordChangeSchema.parse(req.body);
+      const user = await storage.getUserByUsername('admin');
+      
+      if (!user) {
+        return res.status(404).json({ error: 'Admin user not found' });
+      }
+      
+      if (passwordData.currentPassword !== user.password) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+      }
+      
+      // In a real app, hash the password before storing
+      await storage.updateUser(user.id, { password: passwordData.newPassword });
+      
+      res.status(200).json({ message: 'Password changed successfully' });
+    } catch (err) {
+      handleValidationError(err, res);
+    }
+  });
+
+  return app;
 }
