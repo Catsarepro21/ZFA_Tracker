@@ -7,7 +7,8 @@ import session from 'express-session';
 import cors from 'cors';
 import MemoryStore from 'memorystore';
 import { z } from 'zod';
-import { ZodError } from 'zod-validation-error';
+import { ZodError } from 'zod';
+import { fromZodError } from 'zod-validation-error';
 import { storage, IStorage } from './storage';
 import {
   Event,
