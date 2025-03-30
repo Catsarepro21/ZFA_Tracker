@@ -11,9 +11,12 @@ export function log(message, source = "express") {
 }
 
 export function serveStatic(app) {
-  app.use(express.static("dist/client"));
+  const express = await import('express');
+  const p = await import('path');
+  app.use(express.default.static("dist/client"));
   app.get("*", (req, res) => {
-    res.sendFile(path.resolve("dist/client/index.html"));
+    if (req.path.startsWith('/api')) return;
+    res.sendFile(p.default.resolve("dist/client/index.html"));
   });
 }
   `;
@@ -83,17 +86,21 @@ build({
     'express-session',
     'drizzle-orm',
     'react',
-    'react-dom'
+    'react-dom',
+    'path',
+    'fs',
+    'url'
   ],
   outdir: 'dist',
   banner: {
     js: `
+// Import helpers for ESM compatibility
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
-import path from 'path';
 import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { dirname } from 'path';
+const __dirname = dirname(__filename);
 `
   }
 }).then(() => {
