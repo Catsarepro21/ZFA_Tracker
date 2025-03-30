@@ -1,4 +1,3 @@
-import { build } from 'esbuild';
 import { execSync } from 'child_process';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -23,27 +22,8 @@ try {
   }
 
   console.log("Building server...");
-  // Then build the server
-  await build({
-    entryPoints: ['server/index.ts'],
-    bundle: true,
-    platform: 'node',
-    target: ['node16'],
-    outfile: 'dist/index.js',
-    external: [
-      'express', 
-      'pg', 
-      'googleapis', 
-      'ws', 
-      '@neondatabase/serverless',
-      'drizzle-orm',
-      'passport'
-    ],
-    format: 'esm',
-    banner: {
-      js: '// This file is generated - do not edit directly\n',
-    },
-  });
+  // Then build the server using tsc instead of esbuild
+  execSync('tsc -p tsconfig.server.json', { stdio: 'inherit' });
   console.log("Server build completed successfully!");
 } catch (error) {
   console.error("Server build failed:", error);
